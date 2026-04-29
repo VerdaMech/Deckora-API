@@ -1,19 +1,28 @@
-import jwt from 'jsonwebtoken';
+import supabase from '../config/supabase.js';
+import { Usuario } from '../models/index.js';
 
-export default function auth(req, res, next) {
-  const authHeader = req.headers['authorization'];
+export default async function auth(req, res, next) {
+  const authHeader = req.headers.authorization;
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Token no proporcionado' });
+  if (!authHeader?.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Token no provisto' });
   }
 
   const token = authHeader.slice(7);
 
-  try {
-    const payload = jwt.verify(token, process.env.JWT_SECRET);
-    req.usuario = payload;
-    next();
-  } catch {
-    res.status(401).json({ error: 'Token inválido o expirado' });
+  const { data, error } = await supabase.auth.getUser(token);
+  if (error || !data.user) {
+    return res.status(401).json({ error: 'Token inválido' });
   }
+
+  const usuario = await Usuario.findByPk(data.user.id);
+  if (!usuario) {
+    return res.status(401).json({
+      error: 'Usuario autenticado pero no registrado en el sistema',
+    });
+  }
+
+  req.usuarioAuth = data.user;
+  req.usuario = usuario;
+  next();
 }
