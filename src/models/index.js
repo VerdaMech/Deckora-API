@@ -10,6 +10,12 @@ import SnapshotMazoInscripcion from './SnapshotMazoInscripcion.js';
 import Ronda from './Ronda.js';
 import Enfrentamiento from './Enfrentamiento.js';
 import EnfrentamientoParticipante from './EnfrentamientoParticipante.js';
+import Carta from './Carta.js';
+import Coleccion from './Coleccion.js';
+import ColeccionCarta from './ColeccionCarta.js';
+import Mazo from './Mazo.js';
+import MazoCarta from './MazoCarta.js';
+import Estadistica from './Estadistica.js';
 
 // --- Usuario ↔ perfiles (1-1) ---
 
@@ -35,14 +41,16 @@ Torneo.hasMany(Inscripcion, { foreignKey: 'torneo_id' });
 Inscripcion.belongsTo(Jugador, { foreignKey: 'usuario_id' });
 Jugador.hasMany(Inscripcion, { foreignKey: 'usuario_id' });
 
-// TODO: completar asociación Inscripcion ↔ Mazo cuando Persona B agregue Mazo
+Inscripcion.belongsTo(Mazo, { foreignKey: 'mazo_id' });
+Mazo.hasMany(Inscripcion, { foreignKey: 'mazo_id' });
 
 // --- SnapshotMazoInscripcion ↔ Inscripcion ---
 
 SnapshotMazoInscripcion.belongsTo(Inscripcion, { foreignKey: 'inscripcion_id' });
 Inscripcion.hasMany(SnapshotMazoInscripcion, { foreignKey: 'inscripcion_id' });
 
-// TODO: completar asociación SnapshotMazoInscripcion ↔ Carta cuando Persona B agregue Carta
+SnapshotMazoInscripcion.belongsTo(Carta, { foreignKey: 'carta_id' });
+Carta.hasMany(SnapshotMazoInscripcion, { foreignKey: 'carta_id' });
 
 // --- Ronda ↔ Torneo ---
 
@@ -62,6 +70,37 @@ Enfrentamiento.hasMany(EnfrentamientoParticipante, { foreignKey: 'enfrentamiento
 EnfrentamientoParticipante.belongsTo(Inscripcion, { foreignKey: 'inscripcion_id' });
 Inscripcion.hasMany(EnfrentamientoParticipante, { foreignKey: 'inscripcion_id' });
 
+// --- Mazo ↔ Jugador ---
+
+Mazo.belongsTo(Jugador, { foreignKey: 'usuario_id' });
+Jugador.hasMany(Mazo, { foreignKey: 'usuario_id' });
+
+// --- Mazo ↔ MazoCarta ↔ Carta ---
+
+Mazo.hasMany(MazoCarta, { foreignKey: 'mazo_id' });
+MazoCarta.belongsTo(Mazo, { foreignKey: 'mazo_id' });
+
+MazoCarta.belongsTo(Carta, { foreignKey: 'carta_id' });
+Carta.hasMany(MazoCarta, { foreignKey: 'carta_id' });
+
+// --- Estadistica ↔ Jugador (1-1) ---
+
+Jugador.hasOne(Estadistica, { foreignKey: 'usuario_id' });
+Estadistica.belongsTo(Jugador, { foreignKey: 'usuario_id' });
+
+// --- Coleccion ↔ Jugador ---
+
+Coleccion.belongsTo(Jugador, { foreignKey: 'usuario_id' });
+Jugador.hasMany(Coleccion, { foreignKey: 'usuario_id' });
+
+// --- Coleccion ↔ ColeccionCarta ↔ Carta ---
+
+Coleccion.hasMany(ColeccionCarta, { foreignKey: 'coleccion_id' });
+ColeccionCarta.belongsTo(Coleccion, { foreignKey: 'coleccion_id' });
+
+ColeccionCarta.belongsTo(Carta, { foreignKey: 'carta_id' });
+Carta.hasMany(ColeccionCarta, { foreignKey: 'carta_id' });
+
 export {
   sequelize,
   Usuario,
@@ -74,4 +113,10 @@ export {
   Ronda,
   Enfrentamiento,
   EnfrentamientoParticipante,
+  Carta,
+  Coleccion,
+  ColeccionCarta,
+  Mazo,
+  MazoCarta,
+  Estadistica,
 };
