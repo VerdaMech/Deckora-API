@@ -13,6 +13,8 @@ import EnfrentamientoParticipante from './EnfrentamientoParticipante.js';
 import Carta from './Carta.js';
 import Coleccion from './Coleccion.js';
 import ColeccionCarta from './ColeccionCarta.js';
+import Mazo from './Mazo.js';
+import MazoCarta from './MazoCarta.js';
 
 // --- Usuario ↔ perfiles (1-1) ---
 
@@ -38,7 +40,8 @@ Torneo.hasMany(Inscripcion, { foreignKey: 'torneo_id' });
 Inscripcion.belongsTo(Jugador, { foreignKey: 'usuario_id' });
 Jugador.hasMany(Inscripcion, { foreignKey: 'usuario_id' });
 
-// TODO: completar asociación Inscripcion ↔ Mazo cuando Persona B agregue Mazo
+Inscripcion.belongsTo(Mazo, { foreignKey: 'mazo_id' });
+Mazo.hasMany(Inscripcion, { foreignKey: 'mazo_id' });
 
 // --- SnapshotMazoInscripcion ↔ Inscripcion ---
 
@@ -65,6 +68,19 @@ Enfrentamiento.hasMany(EnfrentamientoParticipante, { foreignKey: 'enfrentamiento
 
 EnfrentamientoParticipante.belongsTo(Inscripcion, { foreignKey: 'inscripcion_id' });
 Inscripcion.hasMany(EnfrentamientoParticipante, { foreignKey: 'inscripcion_id' });
+
+// --- Mazo ↔ Jugador ---
+
+Mazo.belongsTo(Jugador, { foreignKey: 'usuario_id' });
+Jugador.hasMany(Mazo, { foreignKey: 'usuario_id' });
+
+// --- Mazo ↔ MazoCarta ↔ Carta ---
+
+Mazo.hasMany(MazoCarta, { foreignKey: 'mazo_id' });
+MazoCarta.belongsTo(Mazo, { foreignKey: 'mazo_id' });
+
+MazoCarta.belongsTo(Carta, { foreignKey: 'carta_id' });
+Carta.hasMany(MazoCarta, { foreignKey: 'carta_id' });
 
 // --- Coleccion ↔ Jugador ---
 
@@ -94,4 +110,6 @@ export {
   Carta,
   Coleccion,
   ColeccionCarta,
+  Mazo,
+  MazoCarta,
 };
