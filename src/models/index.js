@@ -15,6 +15,7 @@ import Coleccion from './Coleccion.js';
 import ColeccionCarta from './ColeccionCarta.js';
 import Mazo from './Mazo.js';
 import MazoCarta from './MazoCarta.js';
+import Estadistica from './Estadistica.js';
 
 // --- Usuario ↔ perfiles (1-1) ---
 
@@ -82,6 +83,11 @@ MazoCarta.belongsTo(Mazo, { foreignKey: 'mazo_id' });
 MazoCarta.belongsTo(Carta, { foreignKey: 'carta_id' });
 Carta.hasMany(MazoCarta, { foreignKey: 'carta_id' });
 
+// --- Estadistica ↔ Jugador (1-1) ---
+
+Jugador.hasOne(Estadistica, { foreignKey: 'usuario_id' });
+Estadistica.belongsTo(Jugador, { foreignKey: 'usuario_id' });
+
 // --- Coleccion ↔ Jugador ---
 
 Coleccion.belongsTo(Jugador, { foreignKey: 'usuario_id' });
@@ -112,4 +118,5 @@ export {
   ColeccionCarta,
   Mazo,
   MazoCarta,
+  Estadistica,
 };
