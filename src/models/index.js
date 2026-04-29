@@ -7,6 +7,9 @@ import Tienda from './Tienda.js';
 import Torneo from './Torneo.js';
 import Inscripcion from './Inscripcion.js';
 import SnapshotMazoInscripcion from './SnapshotMazoInscripcion.js';
+import Ronda from './Ronda.js';
+import Enfrentamiento from './Enfrentamiento.js';
+import EnfrentamientoParticipante from './EnfrentamientoParticipante.js';
 
 // --- Usuario ↔ perfiles (1-1) ---
 
@@ -41,6 +44,24 @@ Inscripcion.hasMany(SnapshotMazoInscripcion, { foreignKey: 'inscripcion_id' });
 
 // TODO: completar asociación SnapshotMazoInscripcion ↔ Carta cuando Persona B agregue Carta
 
+// --- Ronda ↔ Torneo ---
+
+Ronda.belongsTo(Torneo, { foreignKey: 'torneo_id' });
+Torneo.hasMany(Ronda, { foreignKey: 'torneo_id' });
+
+// --- Enfrentamiento ↔ Ronda ---
+
+Enfrentamiento.belongsTo(Ronda, { foreignKey: 'ronda_id' });
+Ronda.hasMany(Enfrentamiento, { foreignKey: 'ronda_id' });
+
+// --- EnfrentamientoParticipante ↔ Enfrentamiento / Inscripcion ---
+
+EnfrentamientoParticipante.belongsTo(Enfrentamiento, { foreignKey: 'enfrentamiento_id' });
+Enfrentamiento.hasMany(EnfrentamientoParticipante, { foreignKey: 'enfrentamiento_id' });
+
+EnfrentamientoParticipante.belongsTo(Inscripcion, { foreignKey: 'inscripcion_id' });
+Inscripcion.hasMany(EnfrentamientoParticipante, { foreignKey: 'inscripcion_id' });
+
 export {
   sequelize,
   Usuario,
@@ -50,4 +71,7 @@ export {
   Torneo,
   Inscripcion,
   SnapshotMazoInscripcion,
+  Ronda,
+  Enfrentamiento,
+  EnfrentamientoParticipante,
 };
