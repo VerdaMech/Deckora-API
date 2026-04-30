@@ -51,3 +51,24 @@ export async function listarInscripciones(req, res, next) {
     next(err);
   }
 }
+
+export async function obtenerTablaPosiciones(req, res, next) {
+  try {
+    const tabla = await torneosService.obtenerTablaPosiciones(req.params.id);
+    res.json(tabla);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function cerrarTorneo(req, res, next) {
+  try {
+    const torneo = await torneosService.cerrarTorneo(
+      req.params.id,
+      req.usuario.id,
+    );
+    res.json(torneo);
+  } catch (err) {
+    next(err);
+  }
+}

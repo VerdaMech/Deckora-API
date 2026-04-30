@@ -12,5 +12,7 @@ router.post('/', auth, validate(crearTorneoSchema), torneosController.crear);
 router.get('/:id', torneosController.obtenerPorId);
 router.post('/:id/inscripciones', auth, requirePerfil('jugador'), validate(inscribirSchema), torneosController.inscribir);
 router.get('/:id/inscripciones', torneosController.listarInscripciones);
+router.get('/:id/tabla-posiciones', torneosController.obtenerTablaPosiciones);
+router.patch('/:id/cerrar', auth, torneosController.cerrarTorneo);
 
 export default router;
