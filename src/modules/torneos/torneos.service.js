@@ -1,5 +1,6 @@
 import * as repo from './torneos.repository.js';
 import * as mazosRepo from '../mazos/mazos.repository.js';
+import { sequelize } from '../../models/index.js';
 
 export function listar() {
   return repo.listar();
@@ -82,4 +83,86 @@ export async function inscribir(torneoId, jugadorId, mazoId) {
 
 export function listarInscripciones(torneoId) {
   return repo.listarInscripciones(torneoId);
+}
+
+export async function obtenerTablaPosiciones(torneoId) {
+  const torneo = await repo.buscarPorId(torneoId);
+  if (!torneo) {
+    const error = new Error('Torneo no encontrado');
+    error.status = 404;
+    throw error;
+  }
+
+  const inscripciones = await repo.obtenerTablaPosiciones(torneoId);
+
+  const tabla = inscripciones.map((ins) => {
+    const data = ins.toJSON();
+    const participantes = data.EnfrentamientoParticipantes ?? [];
+    const puntos_totales = participantes.reduce(
+      (sum, ep) => sum + (ep.puntos_obtenidos ?? 0),
+      0,
+    );
+    const victorias = participantes.filter(
+      (ep) => ep.resultado === 'ganador',
+    ).length;
+    const nombre_usuario = data.Jugador?.Usuario?.nombre_usuario ?? null;
+    return {
+      inscripcion_id: data.id,
+      jugador_id: data.usuario_id,
+      nombre_usuario,
+      puntos_totales,
+      victorias,
+    };
+  });
+
+  tabla.sort((a, b) => {
+    if (b.puntos_totales !== a.puntos_totales)
+      return b.puntos_totales - a.puntos_totales;
+    return b.victorias - a.victorias;
+  });
+
+  return tabla.map((e, i) => ({ ...e, posicion: i + 1 }));
+}
+
+export async function cerrarTorneo(torneoId, usuarioId) {
+  const torneo = await repo.buscarPorId(torneoId);
+  if (!torneo) {
+    const error = new Error('Torneo no encontrado');
+    error.status = 404;
+    throw error;
+  }
+
+  if (torneo.organizador_id !== usuarioId) {
+    const error = new Error('No tienes permiso para cerrar este torneo');
+    error.status = 403;
+    throw error;
+  }
+
+  if (torneo.estado === 'finalizado' || torneo.estado === 'cancelado') {
+    const error = new Error('El torneo ya está cerrado o cancelado');
+    error.status = 409;
+    throw error;
+  }
+
+  const pendientes = await repo.verificarEnfrentamientosPendientes(torneoId);
+  if (pendientes > 0) {
+    const error = new Error(
+      'No se puede cerrar el torneo: hay enfrentamientos sin resultado registrado',
+    );
+    error.status = 409;
+    throw error;
+  }
+
+  const jugadoresIds = await repo.obtenerJugadoresInscritos(torneoId);
+
+  await sequelize.transaction(async (t) => {
+    await Promise.all(
+      jugadoresIds.map((jugadorId) =>
+        repo.incrementarTorneosParticipados(jugadorId, t),
+      ),
+    );
+    await repo.cerrarTorneo(torneoId, t);
+  });
+
+  return repo.buscarPorId(torneoId);
 }

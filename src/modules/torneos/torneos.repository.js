@@ -1,5 +1,16 @@
 import { Op } from 'sequelize';
-import { Torneo, Inscripcion, SnapshotMazoInscripcion, Jugador, Mazo, Usuario } from '../../models/index.js';
+import {
+  Torneo,
+  Inscripcion,
+  SnapshotMazoInscripcion,
+  Jugador,
+  Mazo,
+  Usuario,
+  Ronda,
+  Enfrentamiento,
+  EnfrentamientoParticipante,
+  Estadistica,
+} from '../../models/index.js';
 
 export function listar() {
   return Torneo.findAll({
@@ -73,4 +84,54 @@ export function listarInscripciones(torneoId) {
       { model: Mazo, attributes: ['id', 'nombre', 'formato', 'slug'] },
     ],
   });
+}
+
+export function obtenerTablaPosiciones(torneoId) {
+  return Inscripcion.findAll({
+    where: { torneo_id: torneoId },
+    include: [
+      { model: EnfrentamientoParticipante },
+      {
+        model: Jugador,
+        include: [{ model: Usuario, attributes: ['nombre_usuario'] }],
+      },
+    ],
+  });
+}
+
+export function cerrarTorneo(torneoId, transaction) {
+  return Torneo.update(
+    { estado: 'finalizado' },
+    { where: { id: torneoId }, transaction },
+  );
+}
+
+export async function verificarEnfrentamientosPendientes(torneoId) {
+  const rondas = await Ronda.findAll({
+    where: { torneo_id: torneoId },
+    attributes: ['id'],
+  });
+  if (rondas.length === 0) return 0;
+  const rondaIds = rondas.map((r) => r.id);
+  return Enfrentamiento.count({
+    where: {
+      ronda_id: { [Op.in]: rondaIds },
+      estado: { [Op.ne]: 'finalizado' },
+    },
+  });
+}
+
+export function incrementarTorneosParticipados(jugadorId, transaction) {
+  return Estadistica.increment('torneos_participados', {
+    where: { usuario_id: jugadorId },
+    transaction,
+  });
+}
+
+export async function obtenerJugadoresInscritos(torneoId) {
+  const inscripciones = await Inscripcion.findAll({
+    where: { torneo_id: torneoId },
+    attributes: ['usuario_id'],
+  });
+  return inscripciones.map((i) => i.usuario_id);
 }
