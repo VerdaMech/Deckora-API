@@ -9,6 +9,7 @@ import mazosRoutes from './modules/mazos/mazos.routes.js';
 import torneosRoutes from './modules/torneos/torneos.routes.js';
 import rondasRoutes from './modules/rondas/rondas.routes.js';
 import enfrentamientosRoutes from './modules/enfrentamientos/enfrentamientos.routes.js';
+import estadisticasRoutes from './modules/estadisticas/estadisticas.routes.js';
 
 const app = express();
 
@@ -23,6 +24,7 @@ app.use('/api/mazos', mazosRoutes);
 app.use('/api/torneos', torneosRoutes);
 app.use('/api/torneos', rondasRoutes);
 app.use('/api/enfrentamientos', enfrentamientosRoutes);
+app.use('/api/estadisticas', estadisticasRoutes);
 
 app.get('/health', (_req, res) => {
   res.json({ ok: true, timestamp: new Date().toISOString() });
