@@ -1,0 +1,168 @@
+import * as repo from './torneos.repository.js';
+import * as mazosRepo from '../mazos/mazos.repository.js';
+import { sequelize } from '../../models/index.js';
+
+export function listar() {
+  return repo.listar();
+}
+
+export async function crear(organizadorId, datos) {
+  return repo.crear({ ...datos, organizador_id: organizadorId });
+}
+
+export async function obtenerPorId(id) {
+  const torneo = await repo.buscarPorId(id);
+  if (!torneo) {
+    const error = new Error('Torneo no encontrado');
+    error.status = 404;
+    throw error;
+  }
+  return torneo;
+}
+
+export async function inscribir(torneoId, jugadorId, mazoId) {
+  const torneo = await repo.buscarPorId(torneoId);
+  if (!torneo) {
+    const error = new Error('Torneo no encontrado');
+    error.status = 404;
+    throw error;
+  }
+  if (torneo.estado !== 'pendiente') {
+    const error = new Error('El torneo no está abierto para inscripciones');
+    error.status = 400;
+    throw error;
+  }
+
+  const inscripcionExistente = await repo.buscarInscripcion(torneoId, jugadorId);
+  if (inscripcionExistente) {
+    const error = new Error('Ya estás inscrito en este torneo');
+    error.status = 409;
+    throw error;
+  }
+
+  const mazoInscrito = await repo.buscarInscripcionPorMazo(torneoId, mazoId);
+  if (mazoInscrito) {
+    const error = new Error('Este mazo ya está inscrito en el torneo');
+    error.status = 409;
+    throw error;
+  }
+
+  const mazo = await mazosRepo.buscarPorId(mazoId);
+  if (!mazo) {
+    const error = new Error('Mazo no encontrado');
+    error.status = 404;
+    throw error;
+  }
+  if (mazo.usuario_id !== jugadorId) {
+    const error = new Error('No puedes inscribir un mazo que no te pertenece');
+    error.status = 403;
+    throw error;
+  }
+
+  const inscripcion = await repo.crearInscripcion({
+    torneo_id: torneoId,
+    usuario_id: jugadorId,
+    mazo_id: mazoId,
+    fecha_inscripcion: new Date(),
+  });
+
+  const cartasMazo = mazo.MazoCartas ?? [];
+  await Promise.all(
+    cartasMazo.map((mc) =>
+      repo.crearSnapshot({
+        inscripcion_id: inscripcion.id,
+        carta_id: mc.carta_id,
+        cantidad: mc.cantidad,
+        es_foil: false,
+      }),
+    ),
+  );
+
+  return inscripcion;
+}
+
+export function listarInscripciones(torneoId) {
+  return repo.listarInscripciones(torneoId);
+}
+
+export async function obtenerTablaPosiciones(torneoId) {
+  const torneo = await repo.buscarPorId(torneoId);
+  if (!torneo) {
+    const error = new Error('Torneo no encontrado');
+    error.status = 404;
+    throw error;
+  }
+
+  const inscripciones = await repo.obtenerTablaPosiciones(torneoId);
+
+  const tabla = inscripciones.map((ins) => {
+    const data = ins.toJSON();
+    const participantes = data.EnfrentamientoParticipantes ?? [];
+    const puntos_totales = participantes.reduce(
+      (sum, ep) => sum + (ep.puntos_obtenidos ?? 0),
+      0,
+    );
+    const victorias = participantes.filter(
+      (ep) => ep.resultado === 'ganador',
+    ).length;
+    const nombre_usuario = data.Jugador?.Usuario?.nombre_usuario ?? null;
+    return {
+      inscripcion_id: data.id,
+      jugador_id: data.usuario_id,
+      nombre_usuario,
+      puntos_totales,
+      victorias,
+    };
+  });
+
+  tabla.sort((a, b) => {
+    if (b.puntos_totales !== a.puntos_totales)
+      return b.puntos_totales - a.puntos_totales;
+    return b.victorias - a.victorias;
+  });
+
+  return tabla.map((e, i) => ({ ...e, posicion: i + 1 }));
+}
+
+export async function cerrarTorneo(torneoId, usuarioId) {
+  const torneo = await repo.buscarPorId(torneoId);
+  if (!torneo) {
+    const error = new Error('Torneo no encontrado');
+    error.status = 404;
+    throw error;
+  }
+
+  if (torneo.organizador_id !== usuarioId) {
+    const error = new Error('No tienes permiso para cerrar este torneo');
+    error.status = 403;
+    throw error;
+  }
+
+  if (torneo.estado === 'finalizado' || torneo.estado === 'cancelado') {
+    const error = new Error('El torneo ya está cerrado o cancelado');
+    error.status = 409;
+    throw error;
+  }
+
+  const pendientes = await repo.verificarEnfrentamientosPendientes(torneoId);
+  if (pendientes > 0) {
+    const error = new Error(
+      'No se puede cerrar el torneo: hay enfrentamientos sin resultado registrado',
+    );
+    error.status = 409;
+    throw error;
+  }
+
+  const jugadoresIds = await repo.obtenerJugadoresInscritos(torneoId);
+
+  await sequelize.transaction(async (t) => {
+    await Promise.all(
+      jugadoresIds.map((jugadorId) =>
+        repo.incrementarTorneosParticipados(jugadorId, t),
+      ),
+    );
+    await repo.cerrarTorneo(torneoId, t);
+  });
+
+  return repo.buscarPorId(torneoId);
+}
