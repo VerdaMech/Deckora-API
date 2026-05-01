@@ -25,6 +25,9 @@ app.use('/api/torneos', torneosRoutes);
 app.use('/api/torneos', rondasRoutes);
 app.use('/api/enfrentamientos', enfrentamientosRoutes);
 app.use('/api/estadisticas', estadisticasRoutes);
+// --- Rutas de módulos (se importarán aquí a medida que se desarrollen) ---
+// import authRoutes from './modules/auth/auth.routes.js';
+// app.use('/api/auth', authRoutes);
 
 app.get('/health', (_req, res) => {
   res.json({ ok: true, timestamp: new Date().toISOString() });
