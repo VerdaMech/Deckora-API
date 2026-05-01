@@ -9,9 +9,10 @@ export function upsert(datos) {
 }
 
 export function listar({ page, limit }) {
-  return Carta.findAndCountAll({
-    limit,
-    offset: (page - 1) * limit,
-    order: [['nombre', 'ASC']],
-  });
+  const options = { order: [['nombre', 'ASC']] };
+  if (limit !== undefined) {
+    options.limit = limit;
+    options.offset = (page - 1) * limit;
+  }
+  return Carta.findAndCountAll(options);
 }

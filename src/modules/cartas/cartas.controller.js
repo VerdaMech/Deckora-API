@@ -16,7 +16,7 @@ export async function buscar(req, res, next) {
 export async function listar(req, res, next) {
   try {
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 20;
+    const limit = req.query.limit ? parseInt(req.query.limit) : undefined;
     const resultado = await cartasService.listar({ page, limit });
     res.json({ total: resultado.count, cartas: resultado.rows });
   } catch (err) {
