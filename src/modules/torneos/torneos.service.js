@@ -20,6 +20,26 @@ export async function obtenerPorId(id) {
   return torneo;
 }
 
+export async function actualizar(id, usuarioId, datos) {
+  const torneo = await repo.buscarPorId(id);
+  if (!torneo) {
+    const error = new Error('Torneo no encontrado');
+    error.status = 404;
+    throw error;
+  }
+  if (torneo.organizador_id !== usuarioId) {
+    const error = new Error('Solo el organizador puede editar este torneo');
+    error.status = 403;
+    throw error;
+  }
+  if (torneo.estado !== 'pendiente') {
+    const error = new Error('Solo se puede editar un torneo en estado pendiente');
+    error.status = 400;
+    throw error;
+  }
+  return repo.actualizar(id, datos);
+}
+
 export async function inscribir(torneoId, jugadorId, mazoId) {
   const torneo = await repo.buscarPorId(torneoId);
   if (!torneo) {

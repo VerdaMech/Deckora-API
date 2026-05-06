@@ -53,6 +53,12 @@ export function buscarPorId(id) {
   });
 }
 
+export async function actualizar(id, datos) {
+  const [filas] = await Torneo.update(datos, { where: { id } });
+  if (filas === 0) return null;
+  return Torneo.findByPk(id);
+}
+
 export function crearInscripcion(datos) {
   return Inscripcion.create(datos);
 }

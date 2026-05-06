@@ -30,6 +30,15 @@ export async function obtenerPorId(req, res, next) {
   }
 }
 
+export async function actualizar(req, res, next) {
+  try {
+    const torneo = await torneosService.actualizar(req.params.id, req.usuario.id, req.body);
+    res.json(torneo);
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function inscribir(req, res, next) {
   try {
     const inscripcion = await torneosService.inscribir(
