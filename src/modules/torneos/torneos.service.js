@@ -2,8 +2,8 @@ import * as repo from './torneos.repository.js';
 import * as mazosRepo from '../mazos/mazos.repository.js';
 import { sequelize } from '../../models/index.js';
 
-export function listar() {
-  return repo.listar();
+export function listar(filtros = {}) {
+  return repo.listar(filtros);
 }
 
 export async function crear(organizadorId, datos) {
@@ -18,6 +18,26 @@ export async function obtenerPorId(id) {
     throw error;
   }
   return torneo;
+}
+
+export async function actualizar(id, usuarioId, datos) {
+  const torneo = await repo.buscarPorId(id);
+  if (!torneo) {
+    const error = new Error('Torneo no encontrado');
+    error.status = 404;
+    throw error;
+  }
+  if (torneo.organizador_id !== usuarioId) {
+    const error = new Error('Solo el organizador puede editar este torneo');
+    error.status = 403;
+    throw error;
+  }
+  if (torneo.estado !== 'pendiente') {
+    const error = new Error('Solo se puede editar un torneo en estado pendiente');
+    error.status = 400;
+    throw error;
+  }
+  return repo.actualizar(id, datos);
 }
 
 export async function inscribir(torneoId, jugadorId, mazoId) {

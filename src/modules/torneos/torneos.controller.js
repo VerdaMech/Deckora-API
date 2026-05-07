@@ -2,7 +2,8 @@ import * as torneosService from './torneos.service.js';
 
 export async function listar(req, res, next) {
   try {
-    const torneos = await torneosService.listar();
+    const { organizador_id } = req.query;
+    const torneos = await torneosService.listar({ organizadorId: organizador_id });
     res.json(torneos);
   } catch (err) {
     next(err);
@@ -24,6 +25,15 @@ export async function crear(req, res, next) {
 export async function obtenerPorId(req, res, next) {
   try {
     const torneo = await torneosService.obtenerPorId(req.params.id);
+    res.json(torneo);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function actualizar(req, res, next) {
+  try {
+    const torneo = await torneosService.actualizar(req.params.id, req.usuario.id, req.body);
     res.json(torneo);
   } catch (err) {
     next(err);

@@ -12,17 +12,13 @@ import {
   Estadistica,
 } from '../../models/index.js';
 
-export function listar() {
+export function listar({ organizadorId } = {}) {
+  const where = { estado: { [Op.in]: ['pendiente', 'en_curso'] } };
+  if (organizadorId) where.organizador_id = organizadorId;
+
   return Torneo.findAll({
-    where: {
-      estado: { [Op.in]: ['pendiente', 'en_curso'] },
-    },
-    include: [
-      {
-        model: Inscripcion,
-        attributes: [],
-      },
-    ],
+    where,
+    include: [{ model: Inscripcion, attributes: [] }],
     attributes: {
       include: [
         [Torneo.sequelize.fn('COUNT', Torneo.sequelize.col('Inscripcions.id')), 'total_inscritos'],
@@ -45,12 +41,18 @@ export function buscarPorId(id) {
         include: [
           {
             model: Jugador,
-            include: [{ model: Usuario, attributes: ['id', 'email'] }],
+            include: [{ model: Usuario, attributes: ['id', 'correo', 'nombre_usuario'] }],
           },
         ],
       },
     ],
   });
+}
+
+export async function actualizar(id, datos) {
+  const [filas] = await Torneo.update(datos, { where: { id } });
+  if (filas === 0) return null;
+  return Torneo.findByPk(id);
 }
 
 export function crearInscripcion(datos) {
