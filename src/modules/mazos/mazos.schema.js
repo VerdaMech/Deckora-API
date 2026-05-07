@@ -10,7 +10,7 @@ export const crearMazoSchema = z.object({
 });
 
 export const agregarCartaMazoSchema = z.object({
-  carta_id: z.string().uuid(),
+  scryfall_id: z.string().min(1),
   cantidad: z.number().int().positive(),
   es_comandante: z.boolean().default(false),
 });
