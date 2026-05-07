@@ -109,6 +109,26 @@ export function listarInscripciones(torneoId) {
   return repo.listarInscripciones(torneoId);
 }
 
+export async function cancelarInscripcion(torneoId, inscripcionId, jugadorId) {
+  const inscripcion = await repo.buscarInscripcionPorId(inscripcionId);
+  if (!inscripcion) {
+    const err = new Error('Inscripción no encontrada');
+    err.status = 404;
+    throw err;
+  }
+  if (inscripcion.torneo_id !== torneoId) {
+    const err = new Error('La inscripción no corresponde a este torneo');
+    err.status = 400;
+    throw err;
+  }
+  if (inscripcion.usuario_id !== jugadorId) {
+    const err = new Error('No puedes cancelar una inscripción que no te pertenece');
+    err.status = 403;
+    throw err;
+  }
+  await repo.eliminarInscripcion(inscripcionId);
+}
+
 export async function obtenerTablaPosiciones(torneoId) {
   const torneo = await repo.buscarPorId(torneoId);
   if (!torneo) {

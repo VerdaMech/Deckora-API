@@ -89,6 +89,19 @@ export async function cambiarEstado(req, res, next) {
   }
 }
 
+export async function cancelarInscripcion(req, res, next) {
+  try {
+    await torneosService.cancelarInscripcion(
+      req.params.id,
+      req.params.inscripcionId,
+      req.usuario.id,
+    );
+    res.status(204).send();
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function cerrarTorneo(req, res, next) {
   try {
     const torneo = await torneosService.cerrarTorneo(
