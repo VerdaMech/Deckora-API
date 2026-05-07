@@ -2,7 +2,8 @@ import * as torneosService from './torneos.service.js';
 
 export async function listar(req, res, next) {
   try {
-    const torneos = await torneosService.listar();
+    const { organizador_id } = req.query;
+    const torneos = await torneosService.listar({ organizadorId: organizador_id });
     res.json(torneos);
   } catch (err) {
     next(err);

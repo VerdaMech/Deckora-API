@@ -10,6 +10,8 @@ import torneosRoutes from './modules/torneos/torneos.routes.js';
 import rondasRoutes from './modules/rondas/rondas.routes.js';
 import enfrentamientosRoutes from './modules/enfrentamientos/enfrentamientos.routes.js';
 import estadisticasRoutes from './modules/estadisticas/estadisticas.routes.js';
+import usuariosRoutes from './modules/usuarios/usuarios.routes.js';
+import organizadoresRoutes from './modules/organizadores/organizadores.routes.js';
 
 const app = express();
 
@@ -25,9 +27,8 @@ app.use('/api/torneos', torneosRoutes);
 app.use('/api/torneos', rondasRoutes);
 app.use('/api/enfrentamientos', enfrentamientosRoutes);
 app.use('/api/estadisticas', estadisticasRoutes);
-// --- Rutas de módulos (se importarán aquí a medida que se desarrollen) ---
-// import authRoutes from './modules/auth/auth.routes.js';
-// app.use('/api/auth', authRoutes);
+app.use('/api/usuarios', usuariosRoutes);
+app.use('/api/organizadores', organizadoresRoutes);
 
 app.get('/health', (_req, res) => {
   res.json({ ok: true, timestamp: new Date().toISOString() });
