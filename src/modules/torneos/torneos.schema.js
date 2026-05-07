@@ -23,3 +23,7 @@ export const actualizarTorneoSchema = z.object({
 export const inscribirSchema = z.object({
   mazo_id: z.string().uuid(),
 });
+
+export const cambiarEstadoSchema = z.object({
+  estado: z.enum(['pendiente', 'en_curso', 'finalizado', 'cancelado']),
+});

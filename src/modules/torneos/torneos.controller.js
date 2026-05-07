@@ -71,6 +71,24 @@ export async function obtenerTablaPosiciones(req, res, next) {
   }
 }
 
+export async function misTorneos(req, res, next) {
+  try {
+    const torneos = await torneosService.misTorneos(req.usuario.id);
+    res.json(torneos);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function cambiarEstado(req, res, next) {
+  try {
+    const torneo = await torneosService.cambiarEstado(req.params.id, req.usuario.id, req.body);
+    res.json(torneo);
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function cerrarTorneo(req, res, next) {
   try {
     const torneo = await torneosService.cerrarTorneo(
