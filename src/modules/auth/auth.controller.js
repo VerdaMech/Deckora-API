@@ -37,6 +37,10 @@ export async function me(req, res, next) {
       include: modeloPerfil ? [{ model: modeloPerfil }] : [],
     });
 
+    if (!usuario) {
+      return res.status(404).json({ error: 'Perfil de usuario no encontrado' });
+    }
+
     const data = usuario.toJSON();
     const perfil = data.Jugador ?? data.Organizador ?? data.Tienda ?? null;
     delete data.Jugador;
