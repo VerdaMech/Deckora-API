@@ -6,6 +6,10 @@ export function listar(filtros = {}) {
   return repo.listar(filtros);
 }
 
+export function misTorneos(organizadorId) {
+  return repo.listar({ organizadorId, incluirTodos: true });
+}
+
 export async function crear(organizadorId, datos) {
   return repo.crear({ ...datos, organizador_id: organizadorId });
 }
@@ -142,6 +146,26 @@ export async function obtenerTablaPosiciones(torneoId) {
   });
 
   return tabla.map((e, i) => ({ ...e, posicion: i + 1 }));
+}
+
+export async function cambiarEstado(torneoId, usuarioId, { estado }) {
+  const torneo = await repo.buscarPorId(torneoId);
+  if (!torneo) {
+    const error = new Error('Torneo no encontrado');
+    error.status = 404;
+    throw error;
+  }
+  if (torneo.organizador_id !== usuarioId) {
+    const error = new Error('Solo el organizador puede cambiar el estado de este torneo');
+    error.status = 403;
+    throw error;
+  }
+  if (torneo.estado === 'finalizado' || torneo.estado === 'cancelado') {
+    const error = new Error('No se puede cambiar el estado de un torneo ya finalizado o cancelado');
+    error.status = 409;
+    throw error;
+  }
+  return repo.actualizar(torneoId, { estado });
 }
 
 export async function cerrarTorneo(torneoId, usuarioId) {
