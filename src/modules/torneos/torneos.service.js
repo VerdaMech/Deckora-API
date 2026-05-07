@@ -2,8 +2,8 @@ import * as repo from './torneos.repository.js';
 import * as mazosRepo from '../mazos/mazos.repository.js';
 import { sequelize } from '../../models/index.js';
 
-export function listar() {
-  return repo.listar();
+export function listar(filtros = {}) {
+  return repo.listar(filtros);
 }
 
 export async function crear(organizadorId, datos) {
