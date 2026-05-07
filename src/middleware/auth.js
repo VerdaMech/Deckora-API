@@ -22,6 +22,10 @@ export default async function auth(req, res, next) {
     });
   }
 
+  if (!usuario.activo) {
+    return res.status(401).json({ error: 'Cuenta desactivada' });
+  }
+
   req.usuarioAuth = data.user;
   req.usuario = usuario;
   next();

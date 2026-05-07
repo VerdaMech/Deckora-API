@@ -12,8 +12,8 @@ import {
   Estadistica,
 } from '../../models/index.js';
 
-export function listar({ organizadorId } = {}) {
-  const where = { estado: { [Op.in]: ['pendiente', 'en_curso'] } };
+export function listar({ organizadorId, incluirTodos = false } = {}) {
+  const where = incluirTodos ? {} : { estado: { [Op.in]: ['pendiente', 'en_curso'] } };
   if (organizadorId) where.organizador_id = organizadorId;
 
   return Torneo.findAll({
@@ -81,7 +81,7 @@ export function listarInscripciones(torneoId) {
     include: [
       {
         model: Jugador,
-        include: [{ model: Usuario, attributes: ['id', 'email'] }],
+        include: [{ model: Usuario, attributes: ['id', 'correo', 'nombre_usuario'] }],
       },
       { model: Mazo, attributes: ['id', 'nombre', 'formato', 'slug'] },
     ],

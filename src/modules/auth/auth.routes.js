@@ -9,6 +9,7 @@ const router = Router();
 router.post('/signup', validate(signupSchema), authController.signup);
 router.post('/login', validate(loginSchema), authController.login);
 router.get('/me', auth, authController.me);
+router.delete('/me', auth, authController.eliminarCuenta);
 router.post('/logout', auth, authController.logout);
 
 export default router;

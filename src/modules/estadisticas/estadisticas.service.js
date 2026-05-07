@@ -36,9 +36,16 @@ export async function obtenerPublico(jugadorId) {
   const estadistica = await repo.buscarPorJugadorPublico(jugadorId);
 
   if (!estadistica) {
-    const error = new Error('Jugador no encontrado');
-    error.status = 404;
-    throw error;
+    return {
+      usuario_id: jugadorId,
+      partidas_ganadas: 0,
+      partidas_perdidas: 0,
+      partidas_empatadas: 0,
+      torneos_participados: 0,
+      total_partidas: 0,
+      porcentaje_victorias: '0.0',
+      Jugador: null,
+    };
   }
 
   const total =

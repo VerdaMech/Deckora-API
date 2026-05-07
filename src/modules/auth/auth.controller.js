@@ -1,6 +1,15 @@
 import * as authService from './auth.service.js';
 import { Usuario, Jugador, Organizador, Tienda } from '../../models/index.js';
 
+export async function eliminarCuenta(req, res, next) {
+  try {
+    await authService.eliminarCuenta(req.usuario.id);
+    res.status(200).json({ mensaje: 'Cuenta desactivada correctamente' });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function signup(req, res, next) {
   try {
     const resultado = await authService.signup(req.body);
