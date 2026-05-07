@@ -137,3 +137,11 @@ export async function obtenerJugadoresInscritos(torneoId) {
   });
   return inscripciones.map((i) => i.usuario_id);
 }
+
+export function buscarInscripcionPorId(id) {
+  return Inscripcion.findByPk(id);
+}
+
+export function eliminarInscripcion(id) {
+  return Inscripcion.destroy({ where: { id } });
+}

@@ -12,6 +12,7 @@ import enfrentamientosRoutes from './modules/enfrentamientos/enfrentamientos.rou
 import estadisticasRoutes from './modules/estadisticas/estadisticas.routes.js';
 import usuariosRoutes from './modules/usuarios/usuarios.routes.js';
 import organizadoresRoutes from './modules/organizadores/organizadores.routes.js';
+import jugadoresRoutes from './modules/jugadores/jugadores.routes.js';
 
 const app = express();
 
@@ -29,6 +30,7 @@ app.use('/api/enfrentamientos', enfrentamientosRoutes);
 app.use('/api/estadisticas', estadisticasRoutes);
 app.use('/api/usuarios', usuariosRoutes);
 app.use('/api/organizadores', organizadoresRoutes);
+app.use('/api/jugadores', jugadoresRoutes);
 
 app.get('/health', (_req, res) => {
   res.json({ ok: true, timestamp: new Date().toISOString() });
