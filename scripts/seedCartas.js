@@ -89,6 +89,8 @@ function mapCard(card) {
     costo_mana: pickField(card, 'mana_cost') ?? '',
     imagen_url: imageUrl,
     set_codigo: card.set ?? null,
+    set_nombre: card.set_name ?? null,
+    set_fecha_lanzamiento: card.released_at ?? null,
     es_tierra_basica: isBasic,
   };
 }
@@ -184,9 +186,10 @@ async function main() {
         await client.query(
           `INSERT INTO cartas (
              scryfall_id, nombre, tipo, resistencia, fuerza,
-             texto, costo_mana, imagen_url, set_codigo, es_tierra_basica
+             texto, costo_mana, imagen_url, set_codigo, set_nombre,
+             set_fecha_lanzamiento, es_tierra_basica
            )
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
            ON CONFLICT (scryfall_id) DO UPDATE SET
              nombre = EXCLUDED.nombre,
              tipo = EXCLUDED.tipo,
@@ -196,6 +199,8 @@ async function main() {
              costo_mana = EXCLUDED.costo_mana,
              imagen_url = EXCLUDED.imagen_url,
              set_codigo = EXCLUDED.set_codigo,
+             set_nombre = EXCLUDED.set_nombre,
+             set_fecha_lanzamiento = EXCLUDED.set_fecha_lanzamiento,
              es_tierra_basica = EXCLUDED.es_tierra_basica`,
           [
             c.scryfall_id,
@@ -207,6 +212,8 @@ async function main() {
             c.costo_mana,
             c.imagen_url,
             c.set_codigo,
+            c.set_nombre,
+            c.set_fecha_lanzamiento,
             c.es_tierra_basica,
           ]
         );
