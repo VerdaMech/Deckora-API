@@ -77,11 +77,11 @@ Jugador.hasMany(Mazo, { foreignKey: 'usuario_id' });
 
 // --- Mazo ↔ MazoCarta ↔ Carta ---
 
-Mazo.hasMany(MazoCarta, { foreignKey: 'mazo_id' });
+Mazo.hasMany(MazoCarta, { foreignKey: 'mazo_id', as: 'MazoCartas' });
 MazoCarta.belongsTo(Mazo, { foreignKey: 'mazo_id' });
 
-MazoCarta.belongsTo(Carta, { foreignKey: 'carta_id' });
-Carta.hasMany(MazoCarta, { foreignKey: 'carta_id' });
+MazoCarta.belongsTo(Carta, { foreignKey: 'carta_id', as: 'Carta' });
+Carta.hasMany(MazoCarta, { foreignKey: 'carta_id', as: 'MazoCartas' });
 
 // --- Estadistica ↔ Jugador (1-1) ---
 
