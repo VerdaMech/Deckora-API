@@ -3,7 +3,14 @@ import * as mazosRepo from '../mazos/mazos.repository.js';
 import { sequelize } from '../../models/index.js';
 
 export function listar(filtros = {}) {
-  return repo.listar(filtros);
+  return repo.listar({
+    organizadorId: filtros.organizadorId,
+    formato: filtros.formato,
+    estado: filtros.estado,
+    desde: filtros.desde,
+    hasta: filtros.hasta,
+    q: filtros.q,
+  });
 }
 
 export function misTorneos(organizadorId) {

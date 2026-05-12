@@ -1,23 +1,12 @@
-import { calcularDistancia } from '../../utils/haversine.js';
 import * as tiendasRepository from './tiendas.repository.js';
 
 export function listarTodas() {
   return tiendasRepository.listarTodas();
 }
 
-export async function buscarCercanas({ lat, lng, radio }) {
-  const tiendas = await tiendasRepository.listarTodas();
-
-  const conDistancia = tiendas
-    .filter((t) => t.latitud != null && t.longitud != null)
-    .map((t) => ({
-      ...t.toJSON(),
-      distancia_km: calcularDistancia(lat, lng, t.latitud, t.longitud),
-    }))
-    .filter((t) => t.distancia_km <= radio)
-    .sort((a, b) => a.distancia_km - b.distancia_km);
-
-  return conDistancia;
+export async function buscarCercanas() {
+  // La geolocalización de tiendas fue eliminada (columnas latitud/longitud removidas de la tabla).
+  return [];
 }
 
 export async function buscarPorId(id) {

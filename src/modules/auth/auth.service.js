@@ -1,3 +1,4 @@
+import { UniqueConstraintError } from 'sequelize';
 import supabase from '../../config/supabase.js';
 import { Usuario, Jugador, Organizador, Tienda, Estadistica } from '../../models/index.js';
 
@@ -38,11 +39,24 @@ export async function signup({ nombre_usuario, correo, password, rol }) {
         break;
     }
   } catch (dbError) {
-    await supabase.auth.admin.deleteUser(data.user.id);
-    throw dbError;
+    try {
+      await supabase.auth.admin.deleteUser(data.user.id);
+    } catch {
+      // rollback best-effort: si falla el borrado en Supabase, igual propagamos el error original
+    }
+
+    if (dbError instanceof UniqueConstraintError) {
+      const err = new Error('El correo ya está registrado');
+      err.status = 409;
+      throw err;
+    }
+
+    const err = new Error('Error al crear el perfil de usuario');
+    err.status = 422;
+    throw err;
   }
 
-  return { usuario, access_token: data.session.access_token };
+  return { usuario, access_token: data.session?.access_token ?? null };
 }
 
 export async function login({ correo, password }) {
