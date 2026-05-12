@@ -33,14 +33,14 @@ export async function listarSets() {
   const [rows] = await Carta.sequelize.query(`
     SELECT
       set_codigo AS codigo,
-      set_nombre AS nombre,
-      set_fecha_lanzamiento AS fecha_lanzamiento,
-      EXTRACT(YEAR FROM set_fecha_lanzamiento)::int AS anio,
+      MAX(set_nombre) AS nombre,
+      MAX(set_fecha_lanzamiento) AS fecha_lanzamiento,
+      EXTRACT(YEAR FROM MAX(set_fecha_lanzamiento))::int AS anio,
       COUNT(*)::int AS cantidad_cartas
     FROM cartas
     WHERE set_codigo IS NOT NULL
-    GROUP BY set_codigo, set_nombre, set_fecha_lanzamiento
-    ORDER BY set_fecha_lanzamiento DESC NULLS LAST, set_codigo ASC
+    GROUP BY set_codigo
+    ORDER BY MAX(set_fecha_lanzamiento) DESC NULLS LAST, set_codigo ASC
   `);
 
   const byYear = new Map();
