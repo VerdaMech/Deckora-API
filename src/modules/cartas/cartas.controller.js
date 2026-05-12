@@ -6,7 +6,7 @@ export async function buscar(req, res, next) {
     if (!q) {
       return res.status(400).json({ error: 'El parámetro q es requerido' });
     }
-    const cartas = await cartasService.buscarEnScryfall(q);
+    const cartas = await cartasService.buscarEnBD(q);
     res.json(cartas);
   } catch (err) {
     next(err);
