@@ -41,15 +41,15 @@ export async function obtenerPorId(id, jugadorId) {
   return mazo;
 }
 
-function resolverCarta(scryfallId) {
-  return cartasRepository.buscarPorScryfallId(scryfallId).then((carta) => {
-    if (!carta) {
-      const err = new Error(`Carta con scryfall_id '${scryfallId}' no existe en la base de datos`);
-      err.status = 404;
-      throw err;
-    }
-    return carta;
-  });
+async function resolverCarta(identificador) {
+  let carta = await cartasRepository.buscarPorScryfallId(identificador);
+  if (!carta) carta = await cartasRepository.buscarPorId(identificador);
+  if (!carta) {
+    const err = new Error(`Carta '${identificador}' no existe en la biblioteca local`);
+    err.status = 404;
+    throw err;
+  }
+  return carta;
 }
 
 export async function agregarCarta(mazoId, jugadorId, { scryfall_id, cantidad, es_comandante }) {

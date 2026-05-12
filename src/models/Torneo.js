@@ -40,17 +40,14 @@ const Torneo = sequelize.define(
       type: DataTypes.STRING,
       allowNull: true,
     },
-    latitud: {
-      type: DataTypes.FLOAT,
-      allowNull: true,
-    },
-    longitud: {
-      type: DataTypes.FLOAT,
-      allowNull: true,
-    },
     descripcion: {
-      type: DataTypes.TEXT,
+      type: DataTypes.STRING(2000),
       allowNull: true,
+    },
+    publico: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: true,
     },
     cupo_maximo: {
       type: DataTypes.INTEGER,

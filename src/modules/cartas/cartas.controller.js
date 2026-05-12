@@ -4,7 +4,7 @@ export async function buscar(req, res, next) {
   try {
     const { q } = req.query;
     if (!q) {
-      return res.status(400).json({ error: 'El parámetro q es requerido' });
+      return res.status(400).json({ error: 'El parÃ¡metro q es requerido' });
     }
     const cartas = await cartasService.buscarEnBD(q);
     res.json(cartas);
