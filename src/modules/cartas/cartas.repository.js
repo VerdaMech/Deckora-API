@@ -1,7 +1,16 @@
+import { Op } from 'sequelize';
 import { Carta } from '../../models/index.js';
 
 export function buscarPorScryfallId(scryfallId) {
   return Carta.findOne({ where: { scryfall_id: scryfallId } });
+}
+
+export function buscarPorNombre(q, limit = 20) {
+  return Carta.findAll({
+    where: { nombre: { [Op.iLike]: `%${q}%` } },
+    limit,
+    order: [['nombre', 'ASC']],
+  });
 }
 
 export function upsert(datos) {
