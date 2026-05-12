@@ -1,4 +1,4 @@
-import { Op } from 'sequelize';
+import { Op, literal } from 'sequelize';
 import {
   Torneo,
   Inscripcion,
@@ -12,16 +12,33 @@ import {
   Estadistica,
 } from '../../models/index.js';
 
-export function listar({ organizadorId, incluirTodos = false } = {}) {
-  const where = incluirTodos ? {} : { estado: { [Op.in]: ['pendiente', 'en_curso'] } };
-  if (organizadorId) where.organizador_id = organizadorId;
+export function listar({ organizadorId, incluirTodos = false, formato, estado, desde, hasta, q } = {}) {
+  const where = {};
+
+  if (organizadorId) {
+    where.organizador_id = organizadorId;
+    if (!incluirTodos) {
+      where.estado = { [Op.in]: ['pendiente', 'en_curso', 'finalizado', 'cancelado'] };
+    }
+  } else if (!estado) {
+    where.estado = { [Op.in]: ['pendiente', 'en_curso'] };
+  }
+
+  if (formato) where.formato = formato;
+  if (estado) where.estado = estado;
+  if (desde || hasta) {
+    where.fecha = {};
+    if (desde) where.fecha[Op.gte] = new Date(desde);
+    if (hasta) where.fecha[Op.lte] = new Date(hasta);
+  }
+  if (q) where.nombre = { [Op.iLike]: `%${q}%` };
 
   return Torneo.findAll({
     where,
     include: [{ model: Inscripcion, attributes: [] }],
     attributes: {
       include: [
-        [Torneo.sequelize.fn('COUNT', Torneo.sequelize.col('Inscripcions.id')), 'total_inscritos'],
+        [Torneo.sequelize.fn('COUNT', Torneo.sequelize.col('Inscripcions.id')), 'inscritos_count'],
       ],
     },
     group: ['Torneo.id'],
