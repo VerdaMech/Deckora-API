@@ -5,6 +5,10 @@ export function buscarPorScryfallId(scryfallId) {
   return Carta.findOne({ where: { scryfall_id: scryfallId } });
 }
 
+export function buscarPorId(id) {
+  return Carta.findByPk(id);
+}
+
 export function buscarPorNombre(q, limit = 20) {
   return Carta.findAll({
     where: { nombre: { [Op.iLike]: `%${q}%` } },
