@@ -2,7 +2,15 @@ import * as torneosService from './torneos.service.js';
 
 export async function listar(req, res, next) {
   try {
-    const torneos = await torneosService.listar();
+    const { organizador_id, formato, estado, desde, hasta, q } = req.query;
+    const torneos = await torneosService.listar({
+      organizadorId: organizador_id,
+      formato,
+      estado,
+      desde,
+      hasta,
+      q,
+    });
     res.json(torneos);
   } catch (err) {
     next(err);
@@ -24,6 +32,15 @@ export async function crear(req, res, next) {
 export async function obtenerPorId(req, res, next) {
   try {
     const torneo = await torneosService.obtenerPorId(req.params.id);
+    res.json(torneo);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function actualizar(req, res, next) {
+  try {
+    const torneo = await torneosService.actualizar(req.params.id, req.usuario.id, req.body);
     res.json(torneo);
   } catch (err) {
     next(err);
@@ -56,6 +73,37 @@ export async function obtenerTablaPosiciones(req, res, next) {
   try {
     const tabla = await torneosService.obtenerTablaPosiciones(req.params.id);
     res.json(tabla);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function misTorneos(req, res, next) {
+  try {
+    const torneos = await torneosService.misTorneos(req.usuario.id);
+    res.json(torneos);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function cambiarEstado(req, res, next) {
+  try {
+    const torneo = await torneosService.cambiarEstado(req.params.id, req.usuario.id, req.body);
+    res.json(torneo);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function cancelarInscripcion(req, res, next) {
+  try {
+    await torneosService.cancelarInscripcion(
+      req.params.id,
+      req.params.inscripcionId,
+      req.usuario.id,
+    );
+    res.status(204).send();
   } catch (err) {
     next(err);
   }

@@ -1,4 +1,4 @@
-import { Op } from 'sequelize';
+import { Op, literal } from 'sequelize';
 import {
   Torneo,
   Inscripcion,
@@ -12,20 +12,33 @@ import {
   Estadistica,
 } from '../../models/index.js';
 
-export function listar() {
+export function listar({ organizadorId, incluirTodos = false, formato, estado, desde, hasta, q } = {}) {
+  const where = {};
+
+  if (organizadorId) {
+    where.organizador_id = organizadorId;
+    if (!incluirTodos) {
+      where.estado = { [Op.in]: ['pendiente', 'en_curso', 'finalizado', 'cancelado'] };
+    }
+  } else if (!estado) {
+    where.estado = { [Op.in]: ['pendiente', 'en_curso'] };
+  }
+
+  if (formato) where.formato = formato;
+  if (estado) where.estado = estado;
+  if (desde || hasta) {
+    where.fecha = {};
+    if (desde) where.fecha[Op.gte] = new Date(desde);
+    if (hasta) where.fecha[Op.lte] = new Date(hasta);
+  }
+  if (q) where.nombre = { [Op.iLike]: `%${q}%` };
+
   return Torneo.findAll({
-    where: {
-      estado: { [Op.in]: ['pendiente', 'en_curso'] },
-    },
-    include: [
-      {
-        model: Inscripcion,
-        attributes: [],
-      },
-    ],
+    where,
+    include: [{ model: Inscripcion, attributes: [] }],
     attributes: {
       include: [
-        [Torneo.sequelize.fn('COUNT', Torneo.sequelize.col('Inscripcions.id')), 'total_inscritos'],
+        [Torneo.sequelize.fn('COUNT', Torneo.sequelize.col('Inscripcions.id')), 'inscritos_count'],
       ],
     },
     group: ['Torneo.id'],
@@ -45,12 +58,18 @@ export function buscarPorId(id) {
         include: [
           {
             model: Jugador,
-            include: [{ model: Usuario, attributes: ['id', 'email'] }],
+            include: [{ model: Usuario, attributes: ['id', 'correo', 'nombre_usuario'] }],
           },
         ],
       },
     ],
   });
+}
+
+export async function actualizar(id, datos) {
+  const [filas] = await Torneo.update(datos, { where: { id } });
+  if (filas === 0) return null;
+  return Torneo.findByPk(id);
 }
 
 export function crearInscripcion(datos) {
@@ -79,7 +98,7 @@ export function listarInscripciones(torneoId) {
     include: [
       {
         model: Jugador,
-        include: [{ model: Usuario, attributes: ['id', 'email'] }],
+        include: [{ model: Usuario, attributes: ['id', 'correo', 'nombre_usuario'] }],
       },
       { model: Mazo, attributes: ['id', 'nombre', 'formato', 'slug'] },
     ],
@@ -134,4 +153,12 @@ export async function obtenerJugadoresInscritos(torneoId) {
     attributes: ['usuario_id'],
   });
   return inscripciones.map((i) => i.usuario_id);
+}
+
+export function buscarInscripcionPorId(id) {
+  return Inscripcion.findByPk(id);
+}
+
+export function eliminarInscripcion(id) {
+  return Inscripcion.destroy({ where: { id } });
 }

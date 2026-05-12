@@ -1,5 +1,6 @@
 import * as repo from './mazos.repository.js';
 import { estrategias } from './estrategias/index.js';
+import * as cartasRepository from '../cartas/cartas.repository.js';
 
 function generarSlug(nombre) {
   const base = nombre
@@ -40,23 +41,37 @@ export async function obtenerPorId(id, jugadorId) {
   return mazo;
 }
 
-export async function agregarCarta(mazoId, jugadorId, { carta_id, cantidad, es_comandante }) {
-  const mazo = await repo.buscarPorId(mazoId);
-  verificarPropietario(mazo, jugadorId);
-  return repo.agregarCarta(mazoId, carta_id, cantidad, es_comandante);
+function resolverCarta(scryfallId) {
+  return cartasRepository.buscarPorScryfallId(scryfallId).then((carta) => {
+    if (!carta) {
+      const err = new Error(`Carta con scryfall_id '${scryfallId}' no existe en la base de datos`);
+      err.status = 404;
+      throw err;
+    }
+    return carta;
+  });
 }
 
-export async function actualizarCarta(mazoId, cartaId, jugadorId, datos) {
+export async function agregarCarta(mazoId, jugadorId, { scryfall_id, cantidad, es_comandante }) {
   const mazo = await repo.buscarPorId(mazoId);
   verificarPropietario(mazo, jugadorId);
-  await repo.actualizarCarta(mazoId, cartaId, datos);
+  const carta = await resolverCarta(scryfall_id);
+  return repo.agregarCarta(mazoId, carta.id, cantidad, es_comandante);
+}
+
+export async function actualizarCarta(mazoId, scryfallId, jugadorId, datos) {
+  const mazo = await repo.buscarPorId(mazoId);
+  verificarPropietario(mazo, jugadorId);
+  const carta = await resolverCarta(scryfallId);
+  await repo.actualizarCarta(mazoId, carta.id, datos);
   return repo.buscarPorId(mazoId);
 }
 
-export async function eliminarCarta(mazoId, cartaId, jugadorId) {
+export async function eliminarCarta(mazoId, scryfallId, jugadorId) {
   const mazo = await repo.buscarPorId(mazoId);
   verificarPropietario(mazo, jugadorId);
-  return repo.eliminarCarta(mazoId, cartaId);
+  const carta = await resolverCarta(scryfallId);
+  return repo.eliminarCarta(mazoId, carta.id);
 }
 
 export async function validar(mazoId, jugadorId) {

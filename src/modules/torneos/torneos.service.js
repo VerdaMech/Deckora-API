@@ -2,8 +2,19 @@ import * as repo from './torneos.repository.js';
 import * as mazosRepo from '../mazos/mazos.repository.js';
 import { sequelize } from '../../models/index.js';
 
-export function listar() {
-  return repo.listar();
+export function listar(filtros = {}) {
+  return repo.listar({
+    organizadorId: filtros.organizadorId,
+    formato: filtros.formato,
+    estado: filtros.estado,
+    desde: filtros.desde,
+    hasta: filtros.hasta,
+    q: filtros.q,
+  });
+}
+
+export function misTorneos(organizadorId) {
+  return repo.listar({ organizadorId, incluirTodos: true });
 }
 
 export async function crear(organizadorId, datos) {
@@ -18,6 +29,26 @@ export async function obtenerPorId(id) {
     throw error;
   }
   return torneo;
+}
+
+export async function actualizar(id, usuarioId, datos) {
+  const torneo = await repo.buscarPorId(id);
+  if (!torneo) {
+    const error = new Error('Torneo no encontrado');
+    error.status = 404;
+    throw error;
+  }
+  if (torneo.organizador_id !== usuarioId) {
+    const error = new Error('Solo el organizador puede editar este torneo');
+    error.status = 403;
+    throw error;
+  }
+  if (torneo.estado !== 'pendiente') {
+    const error = new Error('Solo se puede editar un torneo en estado pendiente');
+    error.status = 400;
+    throw error;
+  }
+  return repo.actualizar(id, datos);
 }
 
 export async function inscribir(torneoId, jugadorId, mazoId) {
@@ -85,6 +116,26 @@ export function listarInscripciones(torneoId) {
   return repo.listarInscripciones(torneoId);
 }
 
+export async function cancelarInscripcion(torneoId, inscripcionId, jugadorId) {
+  const inscripcion = await repo.buscarInscripcionPorId(inscripcionId);
+  if (!inscripcion) {
+    const err = new Error('Inscripción no encontrada');
+    err.status = 404;
+    throw err;
+  }
+  if (inscripcion.torneo_id !== torneoId) {
+    const err = new Error('La inscripción no corresponde a este torneo');
+    err.status = 400;
+    throw err;
+  }
+  if (inscripcion.usuario_id !== jugadorId) {
+    const err = new Error('No puedes cancelar una inscripción que no te pertenece');
+    err.status = 403;
+    throw err;
+  }
+  await repo.eliminarInscripcion(inscripcionId);
+}
+
 export async function obtenerTablaPosiciones(torneoId) {
   const torneo = await repo.buscarPorId(torneoId);
   if (!torneo) {
@@ -122,6 +173,26 @@ export async function obtenerTablaPosiciones(torneoId) {
   });
 
   return tabla.map((e, i) => ({ ...e, posicion: i + 1 }));
+}
+
+export async function cambiarEstado(torneoId, usuarioId, { estado }) {
+  const torneo = await repo.buscarPorId(torneoId);
+  if (!torneo) {
+    const error = new Error('Torneo no encontrado');
+    error.status = 404;
+    throw error;
+  }
+  if (torneo.organizador_id !== usuarioId) {
+    const error = new Error('Solo el organizador puede cambiar el estado de este torneo');
+    error.status = 403;
+    throw error;
+  }
+  if (torneo.estado === 'finalizado' || torneo.estado === 'cancelado') {
+    const error = new Error('No se puede cambiar el estado de un torneo ya finalizado o cancelado');
+    error.status = 409;
+    throw error;
+  }
+  return repo.actualizar(torneoId, { estado });
 }
 
 export async function cerrarTorneo(torneoId, usuarioId) {

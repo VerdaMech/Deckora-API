@@ -1,5 +1,13 @@
 import { Mazo, MazoCarta, Carta } from '../../models/index.js';
 
+export function listarPublicosPorJugador(jugadorId) {
+  return Mazo.findAll({
+    where: { usuario_id: jugadorId, publico: true },
+    attributes: ['id', 'nombre', 'formato', 'descripcion', 'slug', 'fecha_creacion'],
+    order: [['fecha_creacion', 'DESC']],
+  });
+}
+
 export function listarPorJugador(jugadorId) {
   return Mazo.findAll({
     where: { usuario_id: jugadorId },
@@ -11,7 +19,7 @@ export function listarPorJugador(jugadorId) {
     ],
     attributes: {
       include: [
-        [Mazo.sequelize.fn('COUNT', Mazo.sequelize.col('MazoCartas.id')), 'total_cartas'],
+        [Mazo.sequelize.fn('COUNT', Mazo.sequelize.col('MazoCarta.id')), 'total_cartas'],
       ],
     },
     group: ['Mazo.id'],

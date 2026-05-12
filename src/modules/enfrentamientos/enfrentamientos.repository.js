@@ -2,6 +2,8 @@ import {
   Enfrentamiento,
   EnfrentamientoParticipante,
   Inscripcion,
+  Jugador,
+  Usuario,
   Estadistica,
 } from '../../models/index.js';
 
@@ -10,7 +12,17 @@ export function buscarPorId(id) {
     include: [
       {
         model: EnfrentamientoParticipante,
-        include: [{ model: Inscripcion }],
+        include: [
+          {
+            model: Inscripcion,
+            include: [
+              {
+                model: Jugador,
+                include: [{ model: Usuario, attributes: ['nombre_usuario'] }],
+              },
+            ],
+          },
+        ],
       },
     ],
   });

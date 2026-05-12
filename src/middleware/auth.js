@@ -10,19 +10,29 @@ export default async function auth(req, res, next) {
 
   const token = authHeader.slice(7);
 
-  const { data, error } = await supabase.auth.getUser(token);
-  if (error || !data.user) {
+  let supabaseUser;
+  try {
+    const { data, error } = await supabase.auth.getUser(token);
+    if (error || !data?.user) {
+      return res.status(401).json({ error: 'Token inválido' });
+    }
+    supabaseUser = data.user;
+  } catch {
     return res.status(401).json({ error: 'Token inválido' });
   }
 
-  const usuario = await Usuario.findByPk(data.user.id);
+  const usuario = await Usuario.findByPk(supabaseUser.id);
   if (!usuario) {
     return res.status(401).json({
       error: 'Usuario autenticado pero no registrado en el sistema',
     });
   }
 
-  req.usuarioAuth = data.user;
+  if (!usuario.activo) {
+    return res.status(401).json({ error: 'Cuenta desactivada' });
+  }
+
+  req.usuarioAuth = supabaseUser;
   req.usuario = usuario;
   next();
 }

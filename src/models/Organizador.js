@@ -17,6 +17,10 @@ const Organizador = sequelize.define(
       type: DataTypes.STRING,
       allowNull: true,
     },
+    redes_sociales: {
+      type: DataTypes.JSONB,
+      allowNull: true,
+    },
     verificado: {
       type: DataTypes.BOOLEAN,
       defaultValue: false,

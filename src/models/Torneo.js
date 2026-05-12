@@ -48,12 +48,16 @@ const Torneo = sequelize.define(
       type: DataTypes.FLOAT,
       allowNull: true,
     },
+    descripcion: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
     cupo_maximo: {
       type: DataTypes.INTEGER,
       allowNull: true,
     },
     precio: {
-      type: DataTypes.FLOAT,
+      type: DataTypes.INTEGER,
       defaultValue: 0,
     },
     created_at: {

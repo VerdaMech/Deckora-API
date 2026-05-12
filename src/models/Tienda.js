@@ -25,14 +25,6 @@ const Tienda = sequelize.define(
       type: DataTypes.STRING,
       allowNull: true,
     },
-    latitud: {
-      type: DataTypes.FLOAT,
-      allowNull: true,
-    },
-    longitud: {
-      type: DataTypes.FLOAT,
-      allowNull: true,
-    },
   },
   {
     tableName: 'tiendas',
