@@ -9,8 +9,6 @@ export const crearTorneoSchema = z.object({
   descripcion: z.string().max(2000).nullish(),
   cupo_maximo: z.number().int().positive().nullable().optional(),
   ubicacion: z.string().optional(),
-  latitud: z.number().optional(),
-  longitud: z.number().optional(),
   precio: z.number().int().min(0).optional(),
   publico: z.boolean().optional(),
 });
@@ -22,8 +20,6 @@ export const actualizarTorneoSchema = z.object({
   descripcion: z.string().max(2000).nullish(),
   cupo_maximo: z.number().int().positive().nullable().optional(),
   ubicacion: z.string().optional(),
-  latitud: z.number().optional(),
-  longitud: z.number().optional(),
   precio: z.number().int().min(0).optional(),
   publico: z.boolean().optional(),
 }).refine((data) => Object.keys(data).length > 0, {
