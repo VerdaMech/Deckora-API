@@ -1,8 +1,9 @@
+import { Op } from 'sequelize';
 import { Usuario, Jugador, Organizador, Tienda } from '../../models/index.js';
 
 export function buscarPorUsername(username) {
   return Usuario.findOne({
-    where: { nombre_usuario: username, activo: true },
+    where: { nombre_usuario: { [Op.iLike]: username }, activo: true },
     include: [
       {
         model: Jugador,

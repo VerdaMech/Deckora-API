@@ -1,5 +1,13 @@
 import { Mazo, MazoCarta, Carta } from '../../models/index.js';
 
+export function listarPublicosPorJugador(jugadorId) {
+  return Mazo.findAll({
+    where: { usuario_id: jugadorId, publico: true },
+    attributes: ['id', 'nombre', 'formato', 'descripcion', 'slug', 'fecha_creacion'],
+    order: [['fecha_creacion', 'DESC']],
+  });
+}
+
 export function listarPorJugador(jugadorId) {
   return Mazo.findAll({
     where: { usuario_id: jugadorId },
