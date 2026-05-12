@@ -14,12 +14,13 @@ export function listarPorJugador(jugadorId) {
     include: [
       {
         model: MazoCarta,
+        as: 'MazoCartas',
         attributes: [],
       },
     ],
     attributes: {
       include: [
-        [Mazo.sequelize.fn('COUNT', Mazo.sequelize.col('MazoCarta.id')), 'total_cartas'],
+        [Mazo.sequelize.fn('COUNT', Mazo.sequelize.col('MazoCartas.id')), 'total_cartas'],
       ],
     },
     group: ['Mazo.id'],
@@ -36,7 +37,8 @@ export function buscarPorId(id) {
     include: [
       {
         model: MazoCarta,
-        include: [{ model: Carta }],
+        as: 'MazoCartas',
+        include: [{ model: Carta, as: 'Carta' }],
       },
     ],
   });
