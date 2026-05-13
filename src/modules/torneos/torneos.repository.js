@@ -162,3 +162,22 @@ export function buscarInscripcionPorId(id) {
 export function eliminarInscripcion(id) {
   return Inscripcion.destroy({ where: { id } });
 }
+
+export function listarInscripcionesPendientes(torneoId) {
+  return Inscripcion.findAll({
+    where: { torneo_id: torneoId, confirmado: false },
+    include: [
+      {
+        model: Jugador,
+        include: [{ model: Usuario, attributes: ['id', 'nombre_usuario', 'correo'] }],
+      },
+      { model: Mazo, attributes: ['id', 'nombre', 'formato'] },
+      { model: SnapshotMazoInscripcion, attributes: ['carta_id', 'cantidad'] },
+    ],
+  });
+}
+
+export async function aprobarInscripcion(inscripcionId) {
+  await Inscripcion.update({ confirmado: true }, { where: { id: inscripcionId } });
+  return Inscripcion.findByPk(inscripcionId);
+}
