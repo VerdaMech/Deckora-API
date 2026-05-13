@@ -20,7 +20,7 @@ export function listarPorJugador(jugadorId) {
     ],
     attributes: {
       include: [
-        [Mazo.sequelize.fn('COUNT', Mazo.sequelize.col('MazoCartas.id')), 'total_cartas'],
+        [Mazo.sequelize.fn('COALESCE', Mazo.sequelize.fn('SUM', Mazo.sequelize.col('MazoCartas.cantidad')), 0), 'total_cartas'],
       ],
     },
     group: ['Mazo.id'],
