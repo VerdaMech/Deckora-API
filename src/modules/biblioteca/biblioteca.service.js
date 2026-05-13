@@ -1,9 +1,35 @@
+import { Op } from 'sequelize';
 import { Carta } from '../../models/index.js';
 
-export async function listarCartas({ page, limit, set_codigo }) {
+function buildFiltroColector({ incluir_tokens = false, incluir_arte = false } = {}) {
+  if (incluir_tokens && incluir_arte) return null;
+
+  const condiciones = [];
+
+  if (!incluir_tokens) {
+    condiciones.push({ numero_colector: { [Op.notLike]: 'T%' } });
+  }
+  if (!incluir_arte) {
+    condiciones.push({ numero_colector: { [Op.notLike]: 'A%' } });
+  }
+
+  return {
+    [Op.or]: [
+      { numero_colector: null },
+      { [Op.and]: condiciones },
+    ],
+  };
+}
+
+export async function listarCartas({ page, limit, set_codigo, incluir_tokens = false, incluir_arte = false }) {
   const where = {};
   if (set_codigo) {
     where.set_codigo = set_codigo;
+  }
+
+  const filtroColector = buildFiltroColector({ incluir_tokens, incluir_arte });
+  if (filtroColector) {
+    where[Op.and] = [filtroColector];
   }
 
   const { rows, count } = await Carta.findAndCountAll({
@@ -39,6 +65,10 @@ export async function listarSets() {
       COUNT(*)::int AS cantidad_cartas
     FROM cartas
     WHERE set_codigo IS NOT NULL
+      AND (
+        numero_colector IS NULL
+        OR (numero_colector NOT LIKE 'T%' AND numero_colector NOT LIKE 'A%')
+      )
     GROUP BY set_codigo
     ORDER BY MAX(set_fecha_lanzamiento) DESC NULLS LAST, set_codigo ASC
   `);
