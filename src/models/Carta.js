@@ -47,6 +47,10 @@ const Carta = sequelize.define('Carta', {
     type: DataTypes.DATEONLY,
     allowNull: true,
   },
+  numero_colector: {
+    type: DataTypes.STRING(20),
+    allowNull: true,
+  },
   es_tierra_basica: {
     type: DataTypes.BOOLEAN,
     defaultValue: false,
