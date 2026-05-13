@@ -102,6 +102,42 @@ export async function cancelarInscripcion(req, res, next) {
       req.params.id,
       req.params.inscripcionId,
       req.usuario.id,
+      req.usuario.rol,
+    );
+    res.status(204).send();
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function listarPendientes(req, res, next) {
+  try {
+    const inscripciones = await torneosService.listarPendientes(req.params.id, req.usuario.id);
+    res.json(inscripciones);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function aprobarInscripcion(req, res, next) {
+  try {
+    const inscripcion = await torneosService.aprobarInscripcion(
+      req.params.id,
+      req.params.inscripcionId,
+      req.usuario.id,
+    );
+    res.json(inscripcion);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function rechazarInscripcion(req, res, next) {
+  try {
+    await torneosService.rechazarInscripcion(
+      req.params.id,
+      req.params.inscripcionId,
+      req.usuario.id,
     );
     res.status(204).send();
   } catch (err) {
