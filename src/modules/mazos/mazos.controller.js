@@ -76,3 +76,12 @@ export async function validar(req, res, next) {
     next(err);
   }
 }
+
+export async function recomendarCartas(req, res, next) {
+  try {
+    const result = await mazosService.recomendarCartas(req.params.id, req.usuario.id);
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+}

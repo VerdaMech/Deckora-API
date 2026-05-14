@@ -1,6 +1,7 @@
 import * as repo from './mazos.repository.js';
 import { estrategias } from './estrategias/index.js';
 import * as cartasRepository from '../cartas/cartas.repository.js';
+import { generateExplanation } from '../../utils/openrouter.js';
 
 function generarSlug(nombre) {
   const base = nombre
@@ -82,6 +83,46 @@ export async function actualizar(mazoId, jugadorId, datos) {
     payload.slug = generarSlug(datos.nombre);
   }
   return repo.actualizar(mazoId, payload);
+}
+
+export async function recomendarCartas(mazoId, jugadorId) {
+  const mazo = await repo.buscarPorId(mazoId);
+  verificarPropietario(mazo, jugadorId);
+
+  const cartasConEmbedding = (mazo.MazoCartas ?? []).filter(
+    (mc) => mc.Carta?.embedding != null,
+  );
+
+  if (cartasConEmbedding.length === 0) {
+    const error = new Error('Las cartas del mazo aún no tienen embeddings generados');
+    error.status = 422;
+    throw error;
+  }
+
+  const embeddings = cartasConEmbedding.map((mc) => JSON.parse(mc.Carta.embedding));
+  const dim = embeddings[0].length;
+  const vectorPromedio = Array.from(
+    { length: dim },
+    (_, i) => embeddings.reduce((sum, e) => sum + e[i], 0) / embeddings.length,
+  );
+
+  const excluirIds = (mazo.MazoCartas ?? []).map((mc) => mc.carta_id);
+  const recomendaciones = await repo.buscarRecomendaciones(
+    vectorPromedio,
+    excluirIds,
+    mazo.formato,
+  );
+
+  let explicacion = null;
+  if (recomendaciones.length > 0) {
+    try {
+      explicacion = await generateExplanation(mazo.nombre, mazo.formato, recomendaciones);
+    } catch {
+      // la explicación es opcional; si falla no se interrumpe el endpoint
+    }
+  }
+
+  return { recomendaciones, explicacion };
 }
 
 export async function validar(mazoId, jugadorId) {
