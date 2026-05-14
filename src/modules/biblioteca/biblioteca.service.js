@@ -36,6 +36,16 @@ export async function listarCartas({ page, limit, set_codigo, incluir_tokens = f
 
   if (formato) {
     condicionesAnd.push(literal(`legalities->>'${formato.toLowerCase()}' = 'legal'`));
+  } else {
+    condicionesAnd.push(
+      literal(`(
+        legalities->>'commander' = 'legal' OR
+        legalities->>'standard' = 'legal' OR
+        legalities->>'modern' = 'legal' OR
+        legalities->>'pioneer' = 'legal' OR
+        legalities->>'legacy' = 'legal'
+      )`)
+    );
   }
 
   if (condicionesAnd.length > 0) {
