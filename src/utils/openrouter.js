@@ -22,6 +22,21 @@ export async function generateEmbedding(text) {
   return data.data[0].embedding;
 }
 
+export async function generateEmbeddingsBatch(texts) {
+  const res = await fetch(`${BASE_URL}/embeddings`, {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify({ model: 'nomic-ai/nomic-embed-text-v1.5', input: texts }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`OpenRouter embeddings error: ${res.status} ${await res.text()}`);
+  }
+
+  const data = await res.json();
+  return data.data.sort((a, b) => a.index - b.index).map((d) => d.embedding);
+}
+
 export async function generateExplanation(nombreMazo, formato, cartasRecomendadas) {
   const listaCartas = cartasRecomendadas
     .map((c) => `- ${c.nombre} (${c.tipo ?? 'Sin tipo'}): ${c.texto ?? ''}`)
