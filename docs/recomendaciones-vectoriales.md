@@ -88,29 +88,35 @@ Variable de entorno requerida: `OPENROUTER_API_KEY`
 Archivo: `scripts/generateEmbeddings.js`
 Comando: `npm run embed:generate`
 
-Es un script standalone que se ejecuta una sola vez (o cuantas veces sea necesario hasta completar). Su lógica:
+Es un script standalone que se ejecuta una sola vez (o cuantas veces sea necesario hasta completar). Agrupa las cartas en **batches de 50** para minimizar la cantidad de llamadas a la API.
+
+### Lógica de ejecución
 
 ```
 1. Conecta a la BD y consulta todas las cartas WHERE embedding IS NULL
-2. Para cada carta (concurrencia máxima de 3 simultáneas):
-   a. Construye el texto: "${tipo} CMC:${cmc} Colors:${colors}"
-   b. Llama a OpenRouter para obtener el vector de 768 números
+2. Divide las cartas en batches de 50
+3. Procesa 2 batches simultáneos (= 100 cartas en vuelo)
+4. Por cada batch:
+   a. Construye los textos: "${tipo} CMC:${cmc} Colors:${colors}"
+   b. Envía los 50 textos en una sola llamada a OpenRouter
    c. Si falla con 429 (rate limit): espera con backoff exponencial
       (2s → 4s → 8s → 16s) y reintenta hasta 5 veces
-   d. Si falla por otro error: reintenta tras 1s, hasta 5 veces
-   e. Si agota los 5 reintentos: marca como fallida y continúa
-   f. Si tiene éxito: UPDATE cartas SET embedding = $1::vector WHERE id = $2
-3. Imprime el progreso cada 100 cartas
-4. Al finalizar reporta exitosas vs fallidas
+   d. Si agota los 5 reintentos: procesa las 50 cartas una por una como fallback
+   e. Si tiene éxito: guarda cada embedding con UPDATE ... SET embedding = $1::vector
+5. Imprime el progreso cada 5 batches (≈ 250 cartas)
+6. Al finalizar reporta exitosas vs fallidas
 ```
+
+### Rendimiento
+
+| Versión | Llamadas a la API | Tiempo estimado (35.000 cartas) |
+|---------|------------------|--------------------------------|
+| Anterior (1 carta por llamada) | ~35.000 | 2–4 horas |
+| Actual (50 cartas por llamada) | ~700 | **10–20 minutos** |
 
 ### Idempotencia
 
 El script **solo procesa cartas con `embedding IS NULL`**. Si se interrumpe o hay fallidas, se vuelve a ejecutar sin riesgo de duplicar trabajo.
-
-### Tiempo estimado
-
-Con ~35.000 filas y concurrencia 3: entre **2 y 4 horas** dependiendo del rate limit de OpenRouter.
 
 ---
 
