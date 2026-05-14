@@ -258,6 +258,16 @@ export async function cambiarEstado(torneoId, usuarioId, { estado }) {
     error.status = 409;
     throw error;
   }
+  if (estado === 'finalizado') {
+    const pendientes = await repo.verificarEnfrentamientosPendientes(torneoId);
+    if (pendientes > 0) {
+      const error = new Error(
+        'No se puede finalizar el torneo: hay enfrentamientos sin resultado registrado'
+      );
+      error.status = 409;
+      throw error;
+    }
+  }
   return repo.actualizar(torneoId, { estado });
 }
 
