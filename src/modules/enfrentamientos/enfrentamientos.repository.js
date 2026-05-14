@@ -12,6 +12,7 @@ export function buscarPorId(id) {
     include: [
       {
         model: EnfrentamientoParticipante,
+        as: 'participantes',
         include: [
           {
             model: Inscripcion,
