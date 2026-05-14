@@ -92,6 +92,9 @@ function mapCard(card) {
     set_nombre: card.set_name ?? null,
     set_fecha_lanzamiento: card.released_at ?? null,
     es_tierra_basica: isBasic,
+    cmc: Math.round(card.cmc ?? 0),
+    colors: card.colors?.length > 0 ? card.colors : (card.color_identity ?? []),
+    legalities: card.legalities ?? {},
   };
 }
 
@@ -187,9 +190,10 @@ async function main() {
           `INSERT INTO cartas (
              scryfall_id, nombre, tipo, resistencia, fuerza,
              texto, costo_mana, imagen_url, set_codigo, set_nombre,
-             set_fecha_lanzamiento, es_tierra_basica
+             set_fecha_lanzamiento, es_tierra_basica,
+             cmc, colors, legalities
            )
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
            ON CONFLICT (scryfall_id) DO UPDATE SET
              nombre = EXCLUDED.nombre,
              tipo = EXCLUDED.tipo,
@@ -201,7 +205,10 @@ async function main() {
              set_codigo = EXCLUDED.set_codigo,
              set_nombre = EXCLUDED.set_nombre,
              set_fecha_lanzamiento = EXCLUDED.set_fecha_lanzamiento,
-             es_tierra_basica = EXCLUDED.es_tierra_basica`,
+             es_tierra_basica = EXCLUDED.es_tierra_basica,
+             cmc = EXCLUDED.cmc,
+             colors = EXCLUDED.colors,
+             legalities = EXCLUDED.legalities`,
           [
             c.scryfall_id,
             c.nombre,
@@ -215,6 +222,9 @@ async function main() {
             c.set_nombre,
             c.set_fecha_lanzamiento,
             c.es_tierra_basica,
+            c.cmc,
+            c.colors,
+            c.legalities,
           ]
         );
         inserted++;
