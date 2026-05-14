@@ -1,4 +1,4 @@
-export function emparejar(inscripciones, asignaciones = []) {
+export function emparejar(inscripciones, asignaciones = [], formato) {
   const arr = [...inscripciones];
 
   // Fisher-Yates shuffle
@@ -7,10 +7,10 @@ export function emparejar(inscripciones, asignaciones = []) {
     [arr[i], arr[j]] = [arr[j], arr[i]];
   }
 
+  const tamano = formato === 'COMMANDER' ? 4 : 2;
   const mesas = [];
-  for (let i = 0; i < arr.length; i += 4) {
-    mesas.push(arr.slice(i, i + 4).map((insc) => insc.id));
+  for (let i = 0; i < arr.length; i += tamano) {
+    mesas.push(arr.slice(i, i + tamano).map((insc) => insc.id));
   }
-
   return mesas;
 }

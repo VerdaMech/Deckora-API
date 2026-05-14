@@ -95,6 +95,7 @@ export async function inscribir(torneoId, jugadorId, mazoId) {
     usuario_id: jugadorId,
     mazo_id: mazoId,
     fecha_inscripcion: new Date(),
+    confirmado: false,
   });
 
   const cartasMazo = mazo.MazoCartas ?? [];

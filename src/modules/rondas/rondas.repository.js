@@ -66,7 +66,7 @@ export async function eliminarRonda(rondaId) {
 
 export async function obtenerInscripcionesConPuntos(torneoId) {
   const inscripciones = await Inscripcion.findAll({
-    where: { torneo_id: torneoId },
+    where: { torneo_id: torneoId, confirmado: true },
   });
 
   const inscripcionesConPuntos = await Promise.all(

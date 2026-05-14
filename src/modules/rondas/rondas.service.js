@@ -40,14 +40,23 @@ export async function crearRonda(torneoId, { tipo_ronda, asignaciones }, usuario
   }
 
   const inscripciones = await repo.obtenerInscripcionesConPuntos(torneoId);
-  if (inscripciones.length < 2) {
-    const err = new Error('Se necesitan al menos 2 inscripciones para crear una ronda');
+
+  const minJugadores = torneo.formato === 'COMMANDER' ? 3 : 2;
+  if (inscripciones.length < minJugadores) {
+    const err = new Error(
+      `Se necesitan al menos ${minJugadores} inscripciones confirmadas para crear una ronda`
+    );
     err.status = 400;
     throw err;
   }
 
   const emparejar = emparejadores[tipo_ronda];
-  const mesas = emparejar(inscripciones, asignaciones);
+  if (!emparejar) {
+    const err = new Error(`Tipo de ronda desconocido: ${tipo_ronda}`);
+    err.status = 400;
+    throw err;
+  }
+  const mesas = emparejar(inscripciones, asignaciones, torneo.formato);
 
   const totalRondas = await repo.contarRondasDeTorneo(torneoId);
   const numeroRonda = totalRondas + 1;
