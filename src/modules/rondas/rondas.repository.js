@@ -1,4 +1,13 @@
-import { sequelize, Ronda, Enfrentamiento, EnfrentamientoParticipante, Inscripcion } from '../../models/index.js';
+import {
+  sequelize,
+  Ronda,
+  Enfrentamiento,
+  EnfrentamientoParticipante,
+  Inscripcion,
+  Jugador,
+  Usuario,
+  Mazo,
+} from '../../models/index.js';
 
 export function crear(torneoId, tipoRonda, numeroRonda) {
   return Ronda.create({ torneo_id: torneoId, tipo_ronda: tipoRonda, numero_ronda: numeroRonda });
@@ -7,20 +16,52 @@ export function crear(torneoId, tipoRonda, numeroRonda) {
 export function listarPorTorneo(torneoId) {
   return Ronda.findAll({
     where: { torneo_id: torneoId },
-    include: [{ model: Enfrentamiento }],
+    include: [{
+      model: Enfrentamiento,
+      as: 'enfrentamientos',
+      include: [{
+        model: EnfrentamientoParticipante,
+        as: 'participantes',
+        include: [{
+          model: Inscripcion,
+          include: [
+            { model: Jugador, include: [{ model: Usuario }] },
+            { model: Mazo },
+          ],
+        }],
+      }],
+    }],
     order: [['numero_ronda', 'ASC']],
   });
 }
 
 export function buscarPorId(rondaId) {
   return Ronda.findByPk(rondaId, {
-    include: [
-      {
-        model: Enfrentamiento,
-        include: [{ model: EnfrentamientoParticipante }],
-      },
-    ],
+    include: [{
+      model: Enfrentamiento,
+      as: 'enfrentamientos',
+      include: [{
+        model: EnfrentamientoParticipante,
+        as: 'participantes',
+        include: [{
+          model: Inscripcion,
+          include: [
+            { model: Jugador, include: [{ model: Usuario }] },
+            { model: Mazo },
+          ],
+        }],
+      }],
+    }],
   });
+}
+
+export async function eliminarRonda(rondaId) {
+  const enfrentamientos = await Enfrentamiento.findAll({ where: { ronda_id: rondaId } });
+  for (const enf of enfrentamientos) {
+    await EnfrentamientoParticipante.destroy({ where: { enfrentamiento_id: enf.id } });
+  }
+  await Enfrentamiento.destroy({ where: { ronda_id: rondaId } });
+  await Ronda.destroy({ where: { id: rondaId } });
 }
 
 export async function obtenerInscripcionesConPuntos(torneoId) {
