@@ -1,4 +1,4 @@
-import { Op } from 'sequelize';
+import { Op, literal } from 'sequelize';
 import { Carta } from '../../models/index.js';
 
 function buildFiltroColector({ incluir_tokens = false, incluir_arte = false } = {}) {
@@ -21,15 +21,25 @@ function buildFiltroColector({ incluir_tokens = false, incluir_arte = false } = 
   };
 }
 
-export async function listarCartas({ page, limit, set_codigo, incluir_tokens = false, incluir_arte = false }) {
+export async function listarCartas({ page, limit, set_codigo, incluir_tokens = false, incluir_arte = false, formato }) {
   const where = {};
   if (set_codigo) {
     where.set_codigo = set_codigo;
   }
 
+  const condicionesAnd = [];
+
   const filtroColector = buildFiltroColector({ incluir_tokens, incluir_arte });
   if (filtroColector) {
-    where[Op.and] = [filtroColector];
+    condicionesAnd.push(filtroColector);
+  }
+
+  if (formato) {
+    condicionesAnd.push(literal(`legalities->>'${formato.toLowerCase()}' = 'legal'`));
+  }
+
+  if (condicionesAnd.length > 0) {
+    where[Op.and] = condicionesAnd;
   }
 
   const { rows, count } = await Carta.findAndCountAll({

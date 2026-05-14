@@ -59,6 +59,15 @@ export async function eliminarCarta(req, res, next) {
   }
 }
 
+export async function actualizar(req, res, next) {
+  try {
+    const mazo = await mazosService.actualizar(req.params.id, req.usuario.id, req.body);
+    res.json(mazo);
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function validar(req, res, next) {
   try {
     const resultado = await mazosService.validar(req.params.id, req.usuario.id);

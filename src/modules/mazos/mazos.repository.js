@@ -39,6 +39,7 @@ export function buscarPorId(id) {
         model: MazoCarta,
         as: 'MazoCartas',
         include: [{ model: Carta, as: 'Carta' }],
+        order: [['createdAt', 'DESC']],
       },
     ],
   });
@@ -63,4 +64,9 @@ export function eliminarCarta(mazoId, cartaId) {
   return MazoCarta.destroy({
     where: { mazo_id: mazoId, carta_id: cartaId },
   });
+}
+
+export async function actualizar(id, datos) {
+  await Mazo.update(datos, { where: { id } });
+  return buscarPorId(id);
 }
