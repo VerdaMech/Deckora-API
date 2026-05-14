@@ -60,7 +60,7 @@ export async function listarCartas({ page, limit, set_codigo, incluir_tokens = f
     attributes: [
       'id', 'scryfall_id', 'nombre', 'tipo', 'costo_mana',
       'imagen_url', 'set_codigo', 'set_nombre', 'set_fecha_lanzamiento',
-      'resistencia', 'fuerza', 'es_tierra_basica',
+      'resistencia', 'fuerza', 'es_tierra_basica', 'texto', 'legalities',
     ],
   });
 
