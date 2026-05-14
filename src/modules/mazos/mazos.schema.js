@@ -6,7 +6,7 @@ export const crearMazoSchema = z.object({
   nombre: z.string().min(1),
   formato: z.enum(FORMATOS),
   descripcion: z.string().optional(),
-  publico: z.boolean().default(false),
+  publico: z.coerce.boolean().default(false),
 });
 
 export const agregarCartaMazoSchema = z.object({
