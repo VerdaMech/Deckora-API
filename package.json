@@ -9,7 +9,8 @@
     "start": "node server.js",
     "db:migrate": "sequelize-cli db:migrate",
     "db:migrate:undo": "sequelize-cli db:migrate:undo",
-    "db:seed": "sequelize-cli db:seed:all"
+    "db:seed": "sequelize-cli db:seed:all",
+    "embed:generate": "node scripts/generateEmbeddings.js"
   },
   "repository": {
     "type": "git",
