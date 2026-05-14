@@ -39,6 +39,7 @@ export function buscarPorId(id) {
         model: MazoCarta,
         as: 'MazoCartas',
         include: [{ model: Carta, as: 'Carta' }],
+        order: [['createdAt', 'DESC']],
       },
     ],
   });
