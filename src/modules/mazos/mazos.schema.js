@@ -19,3 +19,11 @@ export const actualizarCartaMazoSchema = z.object({
   cantidad: z.number().int().positive().optional(),
   es_comandante: z.boolean().optional(),
 });
+
+export const actualizarMazoSchema = z.object({
+  nombre: z.string().min(1).max(80).optional(),
+  descripcion: z.string().optional().nullable(),
+  publico: z.boolean().optional(),
+}).refine(data => Object.keys(data).length > 0, {
+  message: 'Debe enviar al menos un campo para actualizar',
+});

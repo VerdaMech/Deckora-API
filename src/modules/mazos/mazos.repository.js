@@ -64,3 +64,8 @@ export function eliminarCarta(mazoId, cartaId) {
     where: { mazo_id: mazoId, carta_id: cartaId },
   });
 }
+
+export async function actualizar(id, datos) {
+  await Mazo.update(datos, { where: { id } });
+  return buscarPorId(id);
+}
