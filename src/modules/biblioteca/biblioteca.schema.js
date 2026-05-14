@@ -21,4 +21,5 @@ export const listarCartasSchema = z.object({
   set_codigo: z.string().max(10).optional(),
   incluir_tokens: booleanQueryParam,
   incluir_arte: booleanQueryParam,
+  formato: z.enum(['COMMANDER', 'STANDARD', 'MODERN', 'PIONEER', 'LEGACY']).optional(),
 });
