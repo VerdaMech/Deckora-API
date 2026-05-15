@@ -242,6 +242,9 @@ export async function obtenerTablaPosiciones(torneoId) {
   return tabla.map((e, i) => ({ ...e, posicion: i + 1 }));
 }
 
+const MIN_JUGADORES = { COMMANDER: 3 };
+const MIN_DEFAULT = 2;
+
 export async function cambiarEstado(torneoId, usuarioId, { estado }) {
   const torneo = await repo.buscarPorId(torneoId);
   if (!torneo) {
@@ -258,6 +261,17 @@ export async function cambiarEstado(torneoId, usuarioId, { estado }) {
     const error = new Error('No se puede cambiar el estado de un torneo ya finalizado o cancelado');
     error.status = 409;
     throw error;
+  }
+  if (estado === 'en_curso') {
+    const min = MIN_JUGADORES[torneo.formato] ?? MIN_DEFAULT;
+    const confirmados = await repo.contarInscripcionesConfirmadas(torneoId);
+    if (confirmados < min) {
+      const error = new Error(
+        `No se puede iniciar el torneo: se necesitan al menos ${min} jugadores confirmados (hay ${confirmados})`
+      );
+      error.status = 400;
+      throw error;
+    }
   }
   if (estado === 'finalizado') {
     const pendientes = await repo.verificarEnfrentamientosPendientes(torneoId);

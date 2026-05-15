@@ -94,15 +94,19 @@ export function buscarInscripcionPorMazo(torneoId, mazoId) {
 
 export function listarInscripciones(torneoId) {
   return Inscripcion.findAll({
-    where: { torneo_id: torneoId },
+    where: { torneo_id: torneoId, confirmado: true },
     include: [
       {
         model: Jugador,
         include: [{ model: Usuario, attributes: ['id', 'correo', 'nombre_usuario'] }],
       },
-      { model: Mazo, attributes: ['id', 'nombre', 'formato', 'slug'] },
+      { model: Mazo, attributes: ['id', 'nombre', 'formato', 'slug', 'comandante'] },
     ],
   });
+}
+
+export function contarInscripcionesConfirmadas(torneoId) {
+  return Inscripcion.count({ where: { torneo_id: torneoId, confirmado: true } });
 }
 
 export function obtenerTablaPosiciones(torneoId) {
