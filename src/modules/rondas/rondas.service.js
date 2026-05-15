@@ -1,26 +1,46 @@
 import * as repo from './rondas.repository.js';
 import { emparejadores } from './emparejadores/index.js';
-import { Torneo, Enfrentamiento, EnfrentamientoParticipante } from '../../models/index.js';
+import { Torneo, Enfrentamiento, EnfrentamientoParticipante, Inscripcion, Jugador, Usuario, Mazo } from '../../models/index.js';
 
-function serializarRonda(ronda) {
+async function serializarRonda(ronda) {
   const r = ronda.toJSON ? ronda.toJSON() : ronda;
+
+  const inscripcionIds = (r.enfrentamientos ?? [])
+    .flatMap((enf) => (enf.participantes ?? []).map((p) => p.inscripcion_id))
+    .filter(Boolean);
+
+  const porId = {};
+  if (inscripcionIds.length > 0) {
+    const rows = await Inscripcion.findAll({
+      where: { id: inscripcionIds },
+      include: [
+        { model: Jugador, include: [{ model: Usuario }] },
+        { model: Mazo },
+      ],
+    });
+    for (const ins of rows) {
+      const j = ins.toJSON();
+      porId[j.id] = j;
+    }
+  }
+
   return {
     ...r,
     enfrentamientos: (r.enfrentamientos ?? []).map((enf) => ({
       ...enf,
-      participantes: (enf.participantes ?? []).map((p) => ({
-        id: p.id,
-        inscripcion_id: p.inscripcion_id,
-        nombre_usuario: p.Inscripcion?.Jugador?.Usuario?.nombre_usuario ?? '—',
-        resultado: p.resultado,
-        puntos: p.puntos_obtenidos,
-        mazo: p.Inscripcion?.Mazo
-          ? {
-              nombre: p.Inscripcion.Mazo.nombre,
-              comandante: p.Inscripcion.Mazo.comandante ?? null,
-            }
-          : null,
-      })),
+      participantes: (enf.participantes ?? []).map((p) => {
+        const ins = porId[p.inscripcion_id];
+        return {
+          id: p.id,
+          inscripcion_id: p.inscripcion_id,
+          nombre_usuario: ins?.Jugador?.Usuario?.nombre_usuario ?? '—',
+          resultado: p.resultado,
+          puntos: p.puntos_obtenidos,
+          mazo: ins?.Mazo
+            ? { nombre: ins.Mazo.nombre, comandante: ins.Mazo.comandante ?? null }
+            : null,
+        };
+      }),
     })),
   };
 }
@@ -81,12 +101,12 @@ export async function crearRonda(torneoId, { tipo_ronda, asignaciones }, usuario
     }
   }
 
-  return serializarRonda(await repo.buscarPorId(ronda.id));
+  return await serializarRonda(await repo.buscarPorId(ronda.id));
 }
 
 export async function listarRondasDeTorneo(torneoId) {
   const rondas = await repo.listarPorTorneo(torneoId);
-  return rondas.map(serializarRonda);
+  return Promise.all(rondas.map(serializarRonda));
 }
 
 export async function obtenerRonda(rondaId) {
@@ -96,7 +116,7 @@ export async function obtenerRonda(rondaId) {
     err.status = 404;
     throw err;
   }
-  return serializarRonda(ronda);
+  return await serializarRonda(ronda);
 }
 
 export async function eliminarRonda(torneoId, rondaId, usuarioId) {

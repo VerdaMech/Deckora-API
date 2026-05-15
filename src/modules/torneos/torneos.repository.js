@@ -94,7 +94,7 @@ export function buscarInscripcionPorMazo(torneoId, mazoId) {
 
 export function listarInscripciones(torneoId) {
   return Inscripcion.findAll({
-    where: { torneo_id: torneoId, confirmado: true },
+    where: { torneo_id: torneoId },
     include: [
       {
         model: Jugador,
