@@ -1,7 +1,7 @@
 import * as cartasRepository from './cartas.repository.js';
 
-export async function buscarEnBD(q) {
-  return cartasRepository.buscarPorNombre(q);
+export async function buscarEnBD(q, formato = null) {
+  return cartasRepository.buscarPorNombre(q, 20, formato);
 }
 
 export async function listar({ page, limit }) {
