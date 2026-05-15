@@ -282,6 +282,17 @@ export async function cambiarEstado(torneoId, usuarioId, { estado }) {
       error.status = 409;
       throw error;
     }
+
+    const jugadoresIds = await repo.obtenerJugadoresInscritos(torneoId);
+    return sequelize.transaction(async (t) => {
+      await Promise.all(
+        jugadoresIds.map(async (jugadorId) => {
+          await repo.buscarOCrearEstadistica(jugadorId, t);
+          return repo.incrementarTorneosParticipados(jugadorId, t);
+        }),
+      );
+      return repo.actualizar(torneoId, { estado });
+    });
   }
   return repo.actualizar(torneoId, { estado });
 }

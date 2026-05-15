@@ -144,6 +144,21 @@ export async function verificarEnfrentamientosPendientes(torneoId) {
   });
 }
 
+export function buscarOCrearEstadistica(jugadorId, transaction) {
+  return Estadistica.findOrCreate({
+    where: { usuario_id: jugadorId },
+    defaults: {
+      usuario_id: jugadorId,
+      partidas_ganadas: 0,
+      partidas_perdidas: 0,
+      partidas_empatadas: 0,
+      torneos_participados: 0,
+      ultima_actualizacion: new Date(),
+    },
+    transaction,
+  });
+}
+
 export function incrementarTorneosParticipados(jugadorId, transaction) {
   return Estadistica.increment('torneos_participados', {
     where: { usuario_id: jugadorId },
@@ -153,7 +168,7 @@ export function incrementarTorneosParticipados(jugadorId, transaction) {
 
 export async function obtenerJugadoresInscritos(torneoId) {
   const inscripciones = await Inscripcion.findAll({
-    where: { torneo_id: torneoId },
+    where: { torneo_id: torneoId, confirmado: true },
     attributes: ['usuario_id'],
   });
   return inscripciones.map((i) => i.usuario_id);
