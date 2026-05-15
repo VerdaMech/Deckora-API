@@ -100,9 +100,13 @@ export function listarInscripciones(torneoId) {
         model: Jugador,
         include: [{ model: Usuario, attributes: ['id', 'correo', 'nombre_usuario'] }],
       },
-      { model: Mazo, attributes: ['id', 'nombre', 'formato', 'slug'] },
+      { model: Mazo, attributes: ['id', 'nombre', 'formato', 'slug', 'comandante'] },
     ],
   });
+}
+
+export function contarInscripcionesConfirmadas(torneoId) {
+  return Inscripcion.count({ where: { torneo_id: torneoId, confirmado: true } });
 }
 
 export function obtenerTablaPosiciones(torneoId) {
