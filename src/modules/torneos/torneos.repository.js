@@ -185,3 +185,7 @@ export async function aprobarInscripcion(inscripcionId) {
   await Inscripcion.update({ confirmado: true }, { where: { id: inscripcionId } });
   return Inscripcion.findByPk(inscripcionId);
 }
+
+export function buscarUsuarioPorId(id) {
+  return Usuario.findByPk(id, { attributes: ['id', 'correo', 'nombre_usuario'] });
+}

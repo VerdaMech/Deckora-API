@@ -1,6 +1,7 @@
 import * as repo from './torneos.repository.js';
 import * as mazosRepo from '../mazos/mazos.repository.js';
 import { sequelize } from '../../models/index.js';
+import * as emailService from '../notificaciones/email.service.js';
 
 export function listar(filtros = {}) {
   return repo.listar({
@@ -110,6 +111,20 @@ export async function inscribir(torneoId, jugadorId, mazoId) {
     ),
   );
 
+  Promise.all([
+    repo.buscarUsuarioPorId(torneo.organizador_id),
+    repo.buscarUsuarioPorId(jugadorId),
+  ]).then(([organizador, jugador]) => {
+    if (organizador?.correo) {
+      emailService.notificarSolicitudInscripcion({
+        correoOrganizador: organizador.correo,
+        nombreJugador: jugador?.nombre_usuario ?? 'Jugador',
+        nombreTorneo: torneo.nombre,
+        nombreMazo: mazo.nombre,
+      }).catch((err) => console.error('[email] solicitudInscripcion:', err.message));
+    }
+  }).catch((err) => console.error('[email] solicitudInscripcion fetch:', err.message));
+
   return inscripcion;
 }
 
@@ -179,7 +194,18 @@ export async function aprobarInscripcion(torneoId, inscripcionId, usuarioId) {
     err.status = 404;
     throw err;
   }
-  return repo.aprobarInscripcion(inscripcionId);
+  const resultado = await repo.aprobarInscripcion(inscripcionId);
+
+  repo.buscarUsuarioPorId(inscripcion.usuario_id).then((jugador) => {
+    if (jugador?.correo) {
+      emailService.notificarInscripcionAceptada({
+        correoJugador: jugador.correo,
+        nombreTorneo: torneo.nombre,
+      }).catch((err) => console.error('[email] inscripcionAceptada:', err.message));
+    }
+  }).catch((err) => console.error('[email] inscripcionAceptada fetch:', err.message));
+
+  return resultado;
 }
 
 export async function rechazarInscripcion(torneoId, inscripcionId, usuarioId) {
@@ -200,6 +226,16 @@ export async function rechazarInscripcion(torneoId, inscripcionId, usuarioId) {
     err.status = 404;
     throw err;
   }
+
+  repo.buscarUsuarioPorId(inscripcion.usuario_id).then((jugador) => {
+    if (jugador?.correo) {
+      emailService.notificarInscripcionRechazada({
+        correoJugador: jugador.correo,
+        nombreTorneo: torneo.nombre,
+      }).catch((err) => console.error('[email] inscripcionRechazada:', err.message));
+    }
+  }).catch((err) => console.error('[email] inscripcionRechazada fetch:', err.message));
+
   await repo.eliminarInscripcion(inscripcionId);
 }
 
