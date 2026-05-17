@@ -102,7 +102,9 @@ function mapCard(card) {
 function shouldIncludeCard(card) {
   if (card.lang !== 'en') return false;
   if (card.digital) return false;
-  if (!card.image_uris && !card.card_faces?.[0]?.image_uris) return false;
+  const imagenNormal =
+    card.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.normal ?? null;
+  if (!imagenNormal) return false;
 
   if (COMMANDER_ONLY) {
     const legality = card.legalities?.commander;
