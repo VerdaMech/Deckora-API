@@ -333,6 +333,27 @@ export async function cambiarEstado(torneoId, usuarioId, { estado }) {
   return repo.actualizar(torneoId, { estado });
 }
 
+export async function obtenerSnapshotInscripcion(torneoId, inscripcionId, usuarioId) {
+  const torneo = await repo.buscarPorId(torneoId);
+  if (!torneo) {
+    const err = new Error('Torneo no encontrado');
+    err.status = 404;
+    throw err;
+  }
+  if (torneo.organizador_id !== usuarioId) {
+    const err = new Error('No tienes permiso para ver el snapshot de este torneo');
+    err.status = 403;
+    throw err;
+  }
+  const inscripcion = await repo.buscarInscripcionPorId(inscripcionId);
+  if (!inscripcion || inscripcion.torneo_id !== torneoId) {
+    const err = new Error('Inscripción no encontrada');
+    err.status = 404;
+    throw err;
+  }
+  return repo.obtenerSnapshotInscripcion(inscripcionId);
+}
+
 export async function cerrarTorneo(torneoId, usuarioId) {
   const torneo = await repo.buscarPorId(torneoId);
   if (!torneo) {

@@ -16,6 +16,7 @@ router.patch('/:id/estado', auth, validate(cambiarEstadoSchema), torneosControll
 router.post('/:id/inscripciones', auth, requirePerfil('jugador'), validate(inscribirSchema), torneosController.inscribir);
 router.get('/:id/inscripciones/pendientes', auth, torneosController.listarPendientes);
 router.get('/:id/inscripciones', torneosController.listarInscripciones);
+router.get('/:id/inscripciones/:inscripcionId/snapshot', auth, torneosController.obtenerSnapshot);
 router.patch('/:id/inscripciones/:inscripcionId/aprobar', auth, torneosController.aprobarInscripcion);
 router.delete('/:id/inscripciones/:inscripcionId/rechazar', auth, torneosController.rechazarInscripcion);
 router.delete('/:id/inscripciones/:inscripcionId', auth, torneosController.cancelarInscripcion);
