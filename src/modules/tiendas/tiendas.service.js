@@ -4,9 +4,8 @@ export function listarTodas() {
   return tiendasRepository.listarTodas();
 }
 
-export async function buscarCercanas() {
-  // La geolocalización de tiendas fue eliminada (columnas latitud/longitud removidas de la tabla).
-  return [];
+export function buscarCercanas() {
+  return tiendasRepository.listarTodas();
 }
 
 export async function buscarPorId(id) {

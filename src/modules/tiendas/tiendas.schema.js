@@ -5,6 +5,8 @@ export const actualizarTiendaSchema = z.object({
   direccion: z.string().min(1).optional(),
   numero_telefono: z.string().optional(),
   horario_apertura: z.string().optional(),
+  latitud: z.number().min(-90).max(90).optional().nullable(),
+  longitud: z.number().min(-180).max(180).optional().nullable(),
 });
 
 export const cercanaQuerySchema = z.object({
