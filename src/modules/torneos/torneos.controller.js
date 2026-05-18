@@ -145,6 +145,19 @@ export async function rechazarInscripcion(req, res, next) {
   }
 }
 
+export async function obtenerSnapshot(req, res, next) {
+  try {
+    const snapshot = await torneosService.obtenerSnapshotInscripcion(
+      req.params.id,
+      req.params.inscripcionId,
+      req.usuario.id,
+    );
+    res.json(snapshot);
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function cerrarTorneo(req, res, next) {
   try {
     const torneo = await torneosService.cerrarTorneo(

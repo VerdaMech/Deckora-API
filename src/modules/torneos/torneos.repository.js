@@ -204,3 +204,15 @@ export async function aprobarInscripcion(inscripcionId) {
 export function buscarUsuarioPorId(id) {
   return Usuario.findByPk(id, { attributes: ['id', 'correo', 'nombre_usuario'] });
 }
+
+export function obtenerSnapshotInscripcion(inscripcionId) {
+  return SnapshotMazoInscripcion.findAll({
+    where: { inscripcion_id: inscripcionId },
+    include: [
+      {
+        model: Carta,
+        attributes: ['id', 'nombre', 'tipo', 'costo_mana', 'imagen_url', 'colors'],
+      },
+    ],
+  });
+}
