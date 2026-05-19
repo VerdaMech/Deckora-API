@@ -20,6 +20,10 @@ export const actualizarCartaMazoSchema = z.object({
   es_comandante: z.boolean().optional(),
 });
 
+export const importarMazoSchema = z.object({
+  lista: z.string().min(1),
+});
+
 export const actualizarMazoSchema = z.object({
   nombre: z.string().min(1).max(80).optional(),
   descripcion: z.string().optional().nullable(),

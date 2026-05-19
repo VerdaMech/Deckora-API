@@ -50,6 +50,15 @@ export function buscarPorNombre(q, limit = 20, formato = null) {
   });
 }
 
+export function buscarPorSetYNumero(setCodigo, numeroColector) {
+  return Carta.findOne({
+    where: {
+      set_codigo: setCodigo.toLowerCase(),
+      numero_colector: numeroColector,
+    },
+  });
+}
+
 export function upsert(datos) {
   return Carta.upsert(datos, { returning: true });
 }

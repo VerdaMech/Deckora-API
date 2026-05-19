@@ -68,6 +68,15 @@ export async function actualizar(req, res, next) {
   }
 }
 
+export async function importar(req, res, next) {
+  try {
+    const resultado = await mazosService.importarLista(req.params.id, req.usuario.id, req.body.lista);
+    res.json(resultado);
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function validar(req, res, next) {
   try {
     const resultado = await mazosService.validar(req.params.id, req.usuario.id);
