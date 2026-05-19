@@ -41,7 +41,7 @@ export function buscarHistorialMeses(jugadorId) {
 export function buscarHistorialDias(jugadorId, mesKey) {
   return sequelize.query(
     `SELECT
-       TO_CHAR(t.fecha, 'DD') AS dia,
+       TO_CHAR(DATE_TRUNC('day', t.fecha), 'DD') AS dia,
        COUNT(CASE WHEN ep.resultado = 'ganador' THEN 1 END)::integer AS ganadas,
        COUNT(CASE WHEN ep.resultado = 'perdedor' THEN 1 END)::integer AS perdidas
      FROM enfrentamiento_participantes ep
