@@ -20,6 +20,17 @@ export async function obtenerPublico(req, res, next) {
   }
 }
 
+export async function obtenerHistorialDiario(req, res, next) {
+  try {
+    const { jugadorId } = req.params;
+    const { mes } = req.query;
+    const historial = await estadisticasService.obtenerHistorialDiario(jugadorId, mes);
+    res.json(historial);
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function obtenerRanking(req, res, next) {
   try {
     const ranking = await estadisticasService.obtenerRanking();

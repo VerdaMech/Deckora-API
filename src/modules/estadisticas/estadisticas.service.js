@@ -70,6 +70,10 @@ export async function obtenerPublico(jugadorId) {
   };
 }
 
+export async function obtenerHistorialDiario(jugadorId, mesKey) {
+  return repo.buscarHistorialDias(jugadorId, mesKey);
+}
+
 export async function obtenerRanking() {
   const estadisticas = await repo.obtenerRanking();
 
