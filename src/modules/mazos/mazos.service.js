@@ -125,6 +125,58 @@ export async function recomendarCartas(mazoId, jugadorId) {
   return { recomendaciones, explicacion };
 }
 
+function parsearLinea(linea) {
+  const match = linea.trim().match(/^(\d+)\s+(.+?)\s+\(([^)]+)\)\s+(\S+)$/);
+  if (!match) return null;
+  return {
+    cantidad: parseInt(match[1], 10),
+    nombre: match[2].trim(),
+    setCodigo: match[3].trim(),
+    numeroColector: match[4].trim(),
+  };
+}
+
+export async function importarLista(mazoId, jugadorId, lista) {
+  const mazo = await repo.buscarPorId(mazoId);
+  verificarPropietario(mazo, jugadorId);
+
+  const lineas = lista.split('\n').map((l) => l.trim()).filter(Boolean);
+  const importadas = [];
+  const fallidas = [];
+
+  for (const linea of lineas) {
+    const parsed = parsearLinea(linea);
+    if (!parsed) {
+      fallidas.push({ linea, error: 'Formato no reconocido' });
+      continue;
+    }
+
+    try {
+      let carta = await cartasRepository.buscarPorSetYNumero(parsed.setCodigo, parsed.numeroColector);
+      if (!carta) {
+        const resultados = await cartasRepository.buscarPorNombre(parsed.nombre, 1);
+        carta = resultados[0] ?? null;
+      }
+
+      if (!carta) {
+        fallidas.push({ linea, error: `"${parsed.nombre}" no encontrada en la biblioteca` });
+        continue;
+      }
+
+      await repo.agregarCarta(mazoId, carta.id, parsed.cantidad, false);
+      importadas.push({ linea, nombre: carta.nombre, cantidad: parsed.cantidad });
+    } catch (err) {
+      if (err.name === 'SequelizeUniqueConstraintError') {
+        fallidas.push({ linea, error: `"${parsed.nombre}" ya está en el mazo` });
+      } else {
+        fallidas.push({ linea, error: err.message ?? 'Error al agregar la carta' });
+      }
+    }
+  }
+
+  return { importadas, fallidas };
+}
+
 export async function validar(mazoId, jugadorId) {
   const mazo = await repo.buscarPorId(mazoId);
   verificarPropietario(mazo, jugadorId);

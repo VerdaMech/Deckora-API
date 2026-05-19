@@ -7,6 +7,7 @@ import {
   agregarCartaMazoSchema,
   actualizarCartaMazoSchema,
   actualizarMazoSchema,
+  importarMazoSchema,
 } from './mazos.schema.js';
 import * as mazosController from './mazos.controller.js';
 
@@ -21,5 +22,6 @@ router.post('/:id/cartas', auth, requirePerfil('jugador'), validate(agregarCarta
 router.patch('/:id/cartas/:cartaId', auth, requirePerfil('jugador'), validate(actualizarCartaMazoSchema), mazosController.actualizarCarta);
 router.delete('/:id/cartas/:cartaId', auth, requirePerfil('jugador'), mazosController.eliminarCarta);
 router.post('/:id/validar', auth, requirePerfil('jugador'), mazosController.validar);
+router.post('/:id/importar', auth, requirePerfil('jugador'), validate(importarMazoSchema), mazosController.importar);
 
 export default router;
