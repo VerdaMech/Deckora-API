@@ -33,7 +33,10 @@ export async function obtenerMias(jugadorId) {
 }
 
 export async function obtenerPublico(jugadorId) {
-  const estadistica = await repo.buscarPorJugadorPublico(jugadorId);
+  const [estadistica, historialUltimosMeses] = await Promise.all([
+    repo.buscarPorJugadorPublico(jugadorId),
+    repo.buscarHistorialMeses(jugadorId),
+  ]);
 
   if (!estadistica) {
     return {
@@ -45,6 +48,7 @@ export async function obtenerPublico(jugadorId) {
       total_partidas: 0,
       porcentaje_victorias: '0.0',
       Jugador: null,
+      historialUltimosMeses: [],
     };
   }
 
@@ -62,6 +66,7 @@ export async function obtenerPublico(jugadorId) {
     ...estadistica.toJSON(),
     total_partidas: total,
     porcentaje_victorias: porcentaje,
+    historialUltimosMeses,
   };
 }
 
