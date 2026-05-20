@@ -58,6 +58,19 @@ export function buscarHistorialDias(jugadorId, mesKey) {
   );
 }
 
+export function buscarMazoMasJugado(jugadorId) {
+  return sequelize.query(
+    `SELECT m.id, m.nombre, COUNT(*)::integer AS veces
+     FROM inscripciones i
+     JOIN mazos m ON i.mazo_id = m.id
+     WHERE i.usuario_id = :jugadorId
+     GROUP BY m.id, m.nombre
+     ORDER BY veces DESC
+     LIMIT 1`,
+    { replacements: { jugadorId }, type: QueryTypes.SELECT }
+  );
+}
+
 export function obtenerRanking() {
   return Estadistica.findAll({
     include: [
