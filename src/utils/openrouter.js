@@ -103,7 +103,7 @@ export async function generateExplanation(nombreMazo, formato, cartasRecomendada
       {
         role: 'system',
         content:
-          'Eres un experto en Magic: The Gathering. Explica por qué estas cartas son buenas para el mazo en español. Responde con 3-4 puntos cortos, uno por línea, comenzando cada uno con "•". Sin markdown, sin negritas, sin texto adicional.',
+          'Eres un experto en Magic: The Gathering. Explica por qué estas cartas son buenas para el mazo en español. Responde con 3-4 puntos cortos, uno por línea, comenzando cada uno con "•". Cuando menciones el nombre de una carta, enciérralo en **asteriscos dobles**. Sin otro markdown, sin texto adicional.',
       },
       {
         role: 'user',
