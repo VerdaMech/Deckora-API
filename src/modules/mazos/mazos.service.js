@@ -178,7 +178,7 @@ export async function importarLista(mazoId, jugadorId, lista) {
 }
 
 const OBJETIVO_CARTAS = {
-  COMMANDER: 99,
+  COMMANDER: 100,
   STANDARD: 60,
   MODERN: 60,
   PIONEER: 60,
