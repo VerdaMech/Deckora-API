@@ -86,6 +86,15 @@ export async function validar(req, res, next) {
   }
 }
 
+export async function autocompletar(req, res, next) {
+  try {
+    const resultado = await mazosService.autocompletar(req.params.id, req.usuario.id);
+    res.json(resultado);
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function recomendarCartas(req, res, next) {
   try {
     const result = await mazosService.recomendarCartas(req.params.id, req.usuario.id);

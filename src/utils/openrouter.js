@@ -45,6 +45,53 @@ export async function generateEmbeddingsBatch(texts) {
   return data.embeddings;
 }
 
+export async function generarListaMazo(nombre, formato, comandante, cartasExistentes, cantidadNecesaria) {
+  const esCommander = formato === 'COMMANDER';
+
+  const contexto = cartasExistentes.length > 0
+    ? `\nCartas ya en el mazo:\n${cartasExistentes.map((n) => `- ${n}`).join('\n')}`
+    : '';
+
+  const instrucciones = esCommander
+    ? `Genera exactamente ${cantidadNecesaria} cartas singleton para completar un mazo Commander (EDH). Todas en cantidad 1. Sigue los colores del comandante si se indica.`
+    : `Genera exactamente ${cantidadNecesaria} cartas para completar un mazo de formato ${formato}. Puedes incluir hasta 4 copias de una misma carta (excepto tierras básicas).`;
+
+  const contenido = `${instrucciones}
+Mazo: "${nombre}"${comandante ? `\nComandante: ${comandante}` : ''}${contexto}
+
+Responde SOLO con la lista, una carta por línea, en formato:
+cantidad nombre_exacto_en_inglés
+
+Ejemplo:
+1 Sol Ring
+1 Command Tower
+4 Lightning Bolt
+
+Sin encabezados, sin explicaciones, sin viñetas. Solo la lista.`;
+
+  const res = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
+    method: 'POST',
+    headers: openrouterHeaders(),
+    body: JSON.stringify({
+      model: 'meta-llama/llama-3.3-70b-instruct:free',
+      messages: [
+        {
+          role: 'system',
+          content: 'Eres un experto en Magic: The Gathering. Generas listas de mazos usando nombres exactos de cartas en inglés, sin explicaciones adicionales.',
+        },
+        { role: 'user', content: contenido },
+      ],
+    }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`OpenRouter error: ${res.status} ${await res.text()}`);
+  }
+
+  const data = await res.json();
+  return data.choices[0].message.content;
+}
+
 export async function generateExplanation(nombreMazo, formato, cartasRecomendadas) {
   const listaCartas = cartasRecomendadas
     .map((c) => `- ${c.nombre} (${c.tipo ?? 'Sin tipo'}): ${c.texto ?? ''}`)

@@ -18,6 +18,7 @@ router.post('/', auth, requirePerfil('jugador'), validate(crearMazoSchema), mazo
 router.get('/:id', auth, requirePerfil('jugador'), mazosController.obtenerPorId);
 router.patch('/:id', auth, requirePerfil('jugador'), validate(actualizarMazoSchema), mazosController.actualizar);
 router.get('/:id/recomendaciones', auth, requirePerfil('jugador'), mazosController.recomendarCartas);
+router.post('/:id/autocompletar', auth, requirePerfil('jugador'), mazosController.autocompletar);
 router.post('/:id/cartas', auth, requirePerfil('jugador'), validate(agregarCartaMazoSchema), mazosController.agregarCarta);
 router.patch('/:id/cartas/:cartaId', auth, requirePerfil('jugador'), validate(actualizarCartaMazoSchema), mazosController.actualizarCarta);
 router.delete('/:id/cartas/:cartaId', auth, requirePerfil('jugador'), mazosController.eliminarCarta);

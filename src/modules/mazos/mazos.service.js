@@ -1,7 +1,7 @@
 import * as repo from './mazos.repository.js';
 import { estrategias } from './estrategias/index.js';
 import * as cartasRepository from '../cartas/cartas.repository.js';
-import { generateExplanation } from '../../utils/openrouter.js';
+import { generateExplanation, generarListaMazo } from '../../utils/openrouter.js';
 
 function generarSlug(nombre) {
   const base = nombre
@@ -175,6 +175,81 @@ export async function importarLista(mazoId, jugadorId, lista) {
   }
 
   return { importadas, fallidas };
+}
+
+const OBJETIVO_CARTAS = {
+  COMMANDER: 99,
+  STANDARD: 60,
+  MODERN: 60,
+  PIONEER: 60,
+  LEGACY: 60,
+};
+
+export async function autocompletar(mazoId, jugadorId) {
+  const mazo = await repo.buscarPorId(mazoId);
+  verificarPropietario(mazo, jugadorId);
+
+  const cartasActuales = mazo.MazoCartas ?? [];
+  const objetivo = OBJETIVO_CARTAS[mazo.formato] ?? 60;
+  const totalActual = cartasActuales.reduce((s, mc) => s + (mc.cantidad ?? 1), 0);
+  const necesarias = Math.max(0, objetivo - totalActual);
+
+  if (necesarias === 0) {
+    return { agregadas: [], fallidas: [], mensaje: 'El mazo ya está completo.' };
+  }
+
+  const nombresExistentes = cartasActuales.map((mc) => mc.Carta?.nombre).filter(Boolean);
+  const listaTexto = await generarListaMazo(
+    mazo.nombre,
+    mazo.formato,
+    mazo.comandante,
+    nombresExistentes,
+    necesarias,
+  );
+
+  const idsEnMazo = new Set(cartasActuales.map((mc) => mc.carta_id));
+  const agregadas = [];
+  const fallidas = [];
+
+  const lineas = listaTexto.split('\n').map((l) => l.trim()).filter(Boolean);
+
+  for (const linea of lineas) {
+    const match = linea.match(/^(\d+)\s+(.+)$/);
+    if (!match) continue;
+
+    const cantidad = parseInt(match[1], 10);
+    const nombre = match[2].trim();
+
+    try {
+      let carta = await cartasRepository.buscarPorNombreExacto(nombre, mazo.formato);
+      if (!carta) {
+        const resultados = await cartasRepository.buscarPorNombre(nombre, 1, mazo.formato);
+        carta = resultados[0] ?? null;
+      }
+
+      if (!carta) {
+        fallidas.push({ nombre, error: 'No encontrada en la biblioteca' });
+        continue;
+      }
+
+      if (idsEnMazo.has(carta.id)) {
+        fallidas.push({ nombre: carta.nombre, error: 'Ya está en el mazo' });
+        continue;
+      }
+
+      await repo.agregarCarta(mazoId, carta.id, cantidad, false);
+      idsEnMazo.add(carta.id);
+      agregadas.push({ nombre: carta.nombre, cantidad });
+    } catch (err) {
+      if (err.name === 'SequelizeUniqueConstraintError') {
+        fallidas.push({ nombre, error: 'Ya está en el mazo' });
+      } else {
+        fallidas.push({ nombre, error: err.message ?? 'Error al agregar' });
+      }
+    }
+  }
+
+  return { agregadas, fallidas };
 }
 
 export async function validar(mazoId, jugadorId) {

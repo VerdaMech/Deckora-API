@@ -50,6 +50,33 @@ export function buscarPorNombre(q, limit = 20, formato = null) {
   });
 }
 
+export function buscarPorNombreExacto(nombre, formato = null) {
+  const condicionesAnd = [
+    { nombre: { [Op.iLike]: nombre } },
+    {
+      [Op.or]: [
+        { numero_colector: null },
+        {
+          [Op.and]: [
+            { numero_colector: { [Op.notLike]: 'T%' } },
+            { numero_colector: { [Op.notLike]: 'A%' } },
+          ],
+        },
+      ],
+    },
+  ];
+
+  if (formato) {
+    condicionesAnd.push(literal(`legalities->>'${formato.toLowerCase()}' = 'legal'`));
+  }
+
+  return Carta.findOne({
+    where: { [Op.and]: condicionesAnd },
+    attributes: ['id', 'scryfall_id', 'nombre', 'tipo', 'costo_mana', 'imagen_url', 'set_codigo', 'es_tierra_basica', 'legalities'],
+    order: [['nombre', 'ASC']],
+  });
+}
+
 export function buscarPorSetYNumero(setCodigo, numeroColector) {
   return Carta.findOne({
     where: {
