@@ -1,38 +1,21 @@
-const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
+const DEEPSEEK_BASE_URL = 'https://api.deepseek.com';
 const NOMIC_BASE_URL = 'https://api-atlas.nomic.ai/v1';
 
-async function fetchOpenRouterWithRetry(body, maxIntentos = 3) {
-  let intento = 0;
-  while (intento < maxIntentos) {
-    const res = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
-      method: 'POST',
-      headers: openrouterHeaders(),
-      body: JSON.stringify(body),
-    });
-
-    if (res.status !== 429) {
-      if (!res.ok) throw new Error(`OpenRouter error: ${res.status} ${await res.text()}`);
-      return res.json();
-    }
-
-    intento++;
-    if (intento >= maxIntentos) throw new Error(`OpenRouter error: ${res.status} ${await res.text()}`);
-
-    let espera = 25;
-    try {
-      const errData = await res.json();
-      espera = (errData?.error?.metadata?.retry_after_seconds ?? 25) + 2;
-    } catch { /* usa espera por defecto */ }
-
-    await new Promise((r) => setTimeout(r, espera * 1000));
-  }
-}
-
-function openrouterHeaders() {
+function deepseekHeaders() {
   return {
-    Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+    Authorization: `Bearer ${process.env.DEEPSEEK_API_KEY}`,
     'Content-Type': 'application/json',
   };
+}
+
+async function fetchDeepSeek(body) {
+  const res = await fetch(`${DEEPSEEK_BASE_URL}/chat/completions`, {
+    method: 'POST',
+    headers: deepseekHeaders(),
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`DeepSeek error: ${res.status} ${await res.text()}`);
+  return res.json();
 }
 
 function nomicHeaders() {
@@ -96,8 +79,8 @@ Ejemplo:
 
 Sin encabezados, sin explicaciones, sin viñetas. Solo la lista.`;
 
-  const data = await fetchOpenRouterWithRetry({
-    model: 'meta-llama/llama-3.3-70b-instruct:free',
+  const data = await fetchDeepSeek({
+    model: 'deepseek-chat',
     messages: [
       {
         role: 'system',
@@ -114,8 +97,8 @@ export async function generateExplanation(nombreMazo, formato, cartasRecomendada
     .map((c) => `- ${c.nombre} (${c.tipo ?? 'Sin tipo'}): ${c.texto ?? ''}`)
     .join('\n');
 
-  const data = await fetchOpenRouterWithRetry({
-    model: 'meta-llama/llama-3.3-70b-instruct:free',
+  const data = await fetchDeepSeek({
+    model: 'deepseek-chat',
     messages: [
       {
         role: 'system',
