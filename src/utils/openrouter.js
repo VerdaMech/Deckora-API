@@ -1,6 +1,33 @@
 const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
 const NOMIC_BASE_URL = 'https://api-atlas.nomic.ai/v1';
 
+async function fetchOpenRouterWithRetry(body, maxIntentos = 3) {
+  let intento = 0;
+  while (intento < maxIntentos) {
+    const res = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
+      method: 'POST',
+      headers: openrouterHeaders(),
+      body: JSON.stringify(body),
+    });
+
+    if (res.status !== 429) {
+      if (!res.ok) throw new Error(`OpenRouter error: ${res.status} ${await res.text()}`);
+      return res.json();
+    }
+
+    intento++;
+    if (intento >= maxIntentos) throw new Error(`OpenRouter error: ${res.status} ${await res.text()}`);
+
+    let espera = 25;
+    try {
+      const errData = await res.json();
+      espera = (errData?.error?.metadata?.retry_after_seconds ?? 25) + 2;
+    } catch { /* usa espera por defecto */ }
+
+    await new Promise((r) => setTimeout(r, espera * 1000));
+  }
+}
+
 function openrouterHeaders() {
   return {
     Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
@@ -69,26 +96,16 @@ Ejemplo:
 
 Sin encabezados, sin explicaciones, sin viñetas. Solo la lista.`;
 
-  const res = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
-    method: 'POST',
-    headers: openrouterHeaders(),
-    body: JSON.stringify({
-      model: 'meta-llama/llama-3.3-70b-instruct:free',
-      messages: [
-        {
-          role: 'system',
-          content: 'Eres un experto en Magic: The Gathering. Generas listas de mazos usando nombres exactos de cartas en inglés, sin explicaciones adicionales.',
-        },
-        { role: 'user', content: contenido },
-      ],
-    }),
+  const data = await fetchOpenRouterWithRetry({
+    model: 'meta-llama/llama-3.3-70b-instruct:free',
+    messages: [
+      {
+        role: 'system',
+        content: 'Eres un experto en Magic: The Gathering. Generas listas de mazos usando nombres exactos de cartas en inglés, sin explicaciones adicionales.',
+      },
+      { role: 'user', content: contenido },
+    ],
   });
-
-  if (!res.ok) {
-    throw new Error(`OpenRouter error: ${res.status} ${await res.text()}`);
-  }
-
-  const data = await res.json();
   return data.choices[0].message.content;
 }
 
@@ -97,29 +114,19 @@ export async function generateExplanation(nombreMazo, formato, cartasRecomendada
     .map((c) => `- ${c.nombre} (${c.tipo ?? 'Sin tipo'}): ${c.texto ?? ''}`)
     .join('\n');
 
-  const res = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
-    method: 'POST',
-    headers: openrouterHeaders(),
-    body: JSON.stringify({
-      model: 'meta-llama/llama-3.3-70b-instruct:free',
-      messages: [
-        {
-          role: 'system',
-          content:
-            'Eres un experto en Magic: The Gathering. Explica brevemente por qué estas cartas son buenas opciones para el mazo dado, en español, en 3-4 oraciones.',
-        },
-        {
-          role: 'user',
-          content: `Mazo: "${nombreMazo}" (formato ${formato})\n\nCartas recomendadas:\n${listaCartas}`,
-        },
-      ],
-    }),
+  const data = await fetchOpenRouterWithRetry({
+    model: 'meta-llama/llama-3.3-70b-instruct:free',
+    messages: [
+      {
+        role: 'system',
+        content:
+          'Eres un experto en Magic: The Gathering. Explica brevemente por qué estas cartas son buenas opciones para el mazo dado, en español, en 3-4 oraciones.',
+      },
+      {
+        role: 'user',
+        content: `Mazo: "${nombreMazo}" (formato ${formato})\n\nCartas recomendadas:\n${listaCartas}`,
+      },
+    ],
   });
-
-  if (!res.ok) {
-    throw new Error(`OpenRouter chat error: ${res.status} ${await res.text()}`);
-  }
-
-  const data = await res.json();
   return data.choices[0].message.content;
 }
