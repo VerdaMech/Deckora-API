@@ -3,6 +3,7 @@ import {
   Torneo,
   Inscripcion,
   SnapshotMazoInscripcion,
+  Carta,
   Jugador,
   Mazo,
   Usuario,
