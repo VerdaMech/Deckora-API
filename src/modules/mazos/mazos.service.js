@@ -132,14 +132,25 @@ export async function recomendarCartas(mazoId, jugadorId) {
 }
 
 function parsearLinea(linea) {
-  const match = linea.trim().match(/^(\d+)\s+(.+?)\s+\(([^)]+)\)\s+(\S+)$/);
-  if (!match) return null;
-  return {
-    cantidad: parseInt(match[1], 10),
-    nombre: match[2].trim(),
-    setCodigo: match[3].trim(),
-    numeroColector: match[4].trim(),
-  };
+  const fullMatch = linea.trim().match(/^(\d+)\s+(.+?)\s+\(([^)]+)\)\s+(\S+)$/);
+  if (fullMatch) {
+    return {
+      cantidad: parseInt(fullMatch[1], 10),
+      nombre: fullMatch[2].trim(),
+      setCodigo: fullMatch[3].trim(),
+      numeroColector: fullMatch[4].trim(),
+    };
+  }
+  const simpleMatch = linea.trim().match(/^(\d+)\s+(.+)$/);
+  if (simpleMatch) {
+    return {
+      cantidad: parseInt(simpleMatch[1], 10),
+      nombre: simpleMatch[2].trim(),
+      setCodigo: null,
+      numeroColector: null,
+    };
+  }
+  return null;
 }
 
 export async function importarLista(mazoId, jugadorId, lista) {
@@ -158,7 +169,10 @@ export async function importarLista(mazoId, jugadorId, lista) {
     }
 
     try {
-      let carta = await cartasRepository.buscarPorSetYNumero(parsed.setCodigo, parsed.numeroColector);
+      let carta = null;
+      if (parsed.setCodigo && parsed.numeroColector) {
+        carta = await cartasRepository.buscarPorSetYNumero(parsed.setCodigo, parsed.numeroColector);
+      }
       if (!carta) {
         const resultados = await cartasRepository.buscarPorNombre(parsed.nombre, 1);
         carta = resultados[0] ?? null;
