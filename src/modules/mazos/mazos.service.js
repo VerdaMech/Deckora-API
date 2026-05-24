@@ -195,13 +195,35 @@ export async function autocompletar(mazoId, jugadorId) {
   const mazo = await repo.buscarPorId(mazoId);
   verificarPropietario(mazo, jugadorId);
 
-  const cartasActuales = mazo.MazoCartas ?? [];
+  let cartasActuales = mazo.MazoCartas ?? [];
+  const idsEnMazo = new Set(cartasActuales.map((mc) => mc.carta_id));
+  const agregadas = [];
+  const fallidas = [];
+
+  // Para Commander: agregar el comandante primero si no está en el mazo
+  if (mazo.formato === 'COMMANDER' && mazo.comandante) {
+    const yaTieneComandante = cartasActuales.some((mc) => mc.es_comandante);
+    if (!yaTieneComandante) {
+      let cartaCmd = await cartasRepository.buscarPorNombreExacto(mazo.comandante, 'COMMANDER');
+      if (!cartaCmd) {
+        const resultados = await cartasRepository.buscarPorNombre(mazo.comandante, 1);
+        cartaCmd = resultados[0] ?? null;
+      }
+      if (cartaCmd && !idsEnMazo.has(cartaCmd.id)) {
+        await repo.agregarCarta(mazoId, cartaCmd.id, 1, true);
+        idsEnMazo.add(cartaCmd.id);
+        agregadas.push({ nombre: cartaCmd.nombre, cantidad: 1, esComandante: true });
+        cartasActuales = [...cartasActuales, { carta_id: cartaCmd.id, cantidad: 1, es_comandante: true }];
+      }
+    }
+  }
+
   const objetivo = OBJETIVO_CARTAS[mazo.formato] ?? 60;
   const totalActual = cartasActuales.reduce((s, mc) => s + (mc.cantidad ?? 1), 0);
   const necesarias = Math.max(0, objetivo - totalActual);
 
   if (necesarias === 0) {
-    return { agregadas: [], fallidas: [], mensaje: 'El mazo ya está completo.' };
+    return { agregadas, fallidas, mensaje: 'El mazo ya está completo.' };
   }
 
   const nombresExistentes = cartasActuales.map((mc) => mc.Carta?.nombre).filter(Boolean);
@@ -212,10 +234,6 @@ export async function autocompletar(mazoId, jugadorId) {
     nombresExistentes,
     necesarias,
   );
-
-  const idsEnMazo = new Set(cartasActuales.map((mc) => mc.carta_id));
-  const agregadas = [];
-  const fallidas = [];
 
   const esCommander = mazo.formato === 'COMMANDER';
   const lineas = listaTexto.split('\n').map((l) => l.trim()).filter(Boolean);
