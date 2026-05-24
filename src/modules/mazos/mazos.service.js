@@ -75,6 +75,12 @@ export async function eliminarCarta(mazoId, scryfallId, jugadorId) {
   return repo.eliminarCarta(mazoId, carta.id);
 }
 
+export async function eliminar(mazoId, jugadorId) {
+  const mazo = await repo.buscarPorId(mazoId);
+  verificarPropietario(mazo, jugadorId);
+  return repo.eliminar(mazoId);
+}
+
 export async function actualizar(mazoId, jugadorId, datos) {
   const mazo = await repo.buscarPorId(mazoId);
   verificarPropietario(mazo, jugadorId);
