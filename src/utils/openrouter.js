@@ -64,7 +64,7 @@ export async function generarListaMazo(nombre, formato, comandante, cartasExiste
 
   const instrucciones = esCommander
     ? `Genera exactamente ${cantidadNecesaria} cartas singleton para completar un mazo Commander (EDH). Todas en cantidad 1. Sigue los colores del comandante si se indica.`
-    : `Genera exactamente ${cantidadNecesaria} cartas para completar un mazo de formato ${formato}. Puedes incluir hasta 4 copias de una misma carta (excepto tierras básicas).`;
+    : `Genera exactamente ${cantidadNecesaria} nombres de cartas distintos para completar un mazo de formato ${formato}. Usa cantidad 1 por cada carta. No repitas ningún nombre.`;
 
   const contenido = `${instrucciones}
 Mazo: "${nombre}"${comandante ? `\nComandante: ${comandante}` : ''}${contexto}

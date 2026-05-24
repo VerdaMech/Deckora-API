@@ -217,13 +217,14 @@ export async function autocompletar(mazoId, jugadorId) {
   const agregadas = [];
   const fallidas = [];
 
+  const esCommander = mazo.formato === 'COMMANDER';
   const lineas = listaTexto.split('\n').map((l) => l.trim()).filter(Boolean);
 
   for (const linea of lineas) {
     const match = linea.match(/^(\d+)\s+(.+)$/);
     if (!match) continue;
 
-    const cantidad = parseInt(match[1], 10);
+    const cantidad = esCommander ? parseInt(match[1], 10) : 1;
     const nombre = match[2].trim();
 
     try {
