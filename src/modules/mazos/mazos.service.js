@@ -169,7 +169,7 @@ export async function importarLista(mazoId, jugadorId, lista, comandante) {
         carta = await cartasRepository.buscarPorSetYNumero(parsed.setCodigo, parsed.numeroColector);
       }
       if (!carta) {
-        const resultados = await cartasRepository.buscarPorNombre(parsed.nombre, 1);
+        const resultados = await cartasRepository.buscarPorNombre(parsed.nombre, 1, mazo.formato);
         carta = resultados[0] ?? null;
       }
 
