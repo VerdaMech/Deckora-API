@@ -73,6 +73,10 @@ export async function actualizar(id, datos) {
   return buscarPorId(id);
 }
 
+export function eliminar(id) {
+  return Mazo.destroy({ where: { id } });
+}
+
 export async function buscarRecomendaciones(embeddingPromedio, excluirIds, formato, limit = 10) {
   const embeddingStr = `[${embeddingPromedio.join(',')}]`;
 

@@ -85,6 +85,12 @@ export async function actualizar(mazoId, jugadorId, datos) {
   return repo.actualizar(mazoId, payload);
 }
 
+export async function eliminar(mazoId, jugadorId) {
+  const mazo = await repo.buscarPorId(mazoId);
+  verificarPropietario(mazo, jugadorId);
+  await repo.eliminar(mazoId);
+}
+
 export async function recomendarCartas(mazoId, jugadorId) {
   const mazo = await repo.buscarPorId(mazoId);
   verificarPropietario(mazo, jugadorId);
@@ -167,6 +173,9 @@ export async function importarLista(mazoId, jugadorId, lista, comandante) {
       let carta = null;
       if (parsed.setCodigo && parsed.numeroColector) {
         carta = await cartasRepository.buscarPorSetYNumero(parsed.setCodigo, parsed.numeroColector);
+      }
+      if (!carta) {
+        carta = await cartasRepository.buscarPorNombreExacto(parsed.nombre, mazo.formato);
       }
       if (!carta) {
         const resultados = await cartasRepository.buscarPorNombre(parsed.nombre, 1, mazo.formato);
