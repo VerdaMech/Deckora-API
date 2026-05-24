@@ -1,5 +1,6 @@
 import * as repo from './torneos.repository.js';
 import * as mazosRepo from '../mazos/mazos.repository.js';
+import { estrategias } from '../mazos/estrategias/index.js';
 import { sequelize } from '../../models/index.js';
 import * as emailService from '../notificaciones/email.service.js';
 
@@ -89,6 +90,35 @@ export async function inscribir(torneoId, jugadorId, mazoId) {
     const error = new Error('No puedes inscribir un mazo que no te pertenece');
     error.status = 403;
     throw error;
+  }
+
+  if (mazo.formato !== torneo.formato) {
+    const error = new Error(
+      `El mazo es de formato ${mazo.formato} pero el torneo es ${torneo.formato}`,
+    );
+    error.status = 400;
+    throw error;
+  }
+
+  const estrategia = estrategias[mazo.formato];
+  if (estrategia) {
+    const cartasPlanas = (mazo.MazoCartas ?? []).map((mc) => ({
+      nombre: mc.Carta?.nombre,
+      tipo: mc.Carta?.tipo,
+      costo_mana: mc.Carta?.costo_mana,
+      es_tierra_basica: mc.Carta?.es_tierra_basica ?? false,
+      cantidad: mc.cantidad,
+      es_comandante: mc.es_comandante,
+    }));
+    const validacion = estrategia({ formato: mazo.formato, cartas: cartasPlanas });
+    if (!validacion.valido) {
+      const razones = (validacion.errores ?? []).join('; ');
+      const error = new Error(
+        `El mazo no cumple los requisitos del formato ${mazo.formato}: ${razones}`,
+      );
+      error.status = 400;
+      throw error;
+    }
   }
 
   const inscripcion = await repo.crearInscripcion({

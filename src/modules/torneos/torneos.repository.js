@@ -36,7 +36,7 @@ export function listar({ organizadorId, incluirTodos = false, formato, estado, d
 
   return Torneo.findAll({
     where,
-    include: [{ model: Inscripcion, attributes: [] }],
+    include: [{ model: Inscripcion, attributes: [], where: { confirmado: true }, required: false }],
     attributes: {
       include: [
         [Torneo.sequelize.fn('COUNT', Torneo.sequelize.col('Inscripcions.id')), 'inscritos_count'],

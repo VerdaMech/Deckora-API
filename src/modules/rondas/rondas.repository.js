@@ -1,3 +1,4 @@
+import { Op } from 'sequelize';
 import {
   sequelize,
   Ronda,
@@ -31,7 +32,10 @@ export function listarPorTorneo(torneoId) {
         }],
       }],
     }],
-    order: [['numero_ronda', 'ASC']],
+    order: [
+      ['numero_ronda', 'ASC'],
+      [{ model: Enfrentamiento, as: 'enfrentamientos' }, 'numero_mesa', 'ASC'],
+    ],
   });
 }
 
@@ -52,6 +56,9 @@ export function buscarPorId(rondaId) {
         }],
       }],
     }],
+    order: [
+      [{ model: Enfrentamiento, as: 'enfrentamientos' }, 'numero_mesa', 'ASC'],
+    ],
   });
 }
 
@@ -92,4 +99,19 @@ export async function obtenerInscripcionesConPuntos(torneoId) {
 
 export function contarRondasDeTorneo(torneoId) {
   return Ronda.count({ where: { torneo_id: torneoId } });
+}
+
+export async function contarEnfrentamientosPendientesDeTorneo(torneoId) {
+  const rondas = await Ronda.findAll({
+    where: { torneo_id: torneoId },
+    attributes: ['id'],
+  });
+  if (rondas.length === 0) return 0;
+  const rondaIds = rondas.map((r) => r.id);
+  return Enfrentamiento.count({
+    where: {
+      ronda_id: { [Op.in]: rondaIds },
+      estado: { [Op.ne]: 'finalizado' },
+    },
+  });
 }
