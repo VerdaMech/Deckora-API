@@ -110,7 +110,12 @@ function shouldIncludeCard(card) {
     const legality = card.legalities?.commander;
     if (legality === 'banned' || legality === 'not_legal') return false;
   } else {
-    if (card.legalities?.commander === 'banned') return false;
+    const legalities = card.legalities ?? {};
+    const formatos = ['commander', 'standard', 'modern', 'pioneer', 'legacy'];
+    const legalEnAlguno = formatos.some(
+      (f) => legalities[f] === 'legal' || legalities[f] === 'restricted',
+    );
+    if (!legalEnAlguno) return false;
   }
 
   return true;
