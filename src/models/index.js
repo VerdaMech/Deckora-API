@@ -48,9 +48,8 @@ Mazo.hasMany(Inscripcion, { foreignKey: 'mazo_id' });
 SnapshotMazoInscripcion.belongsTo(Inscripcion, { foreignKey: 'inscripcion_id' });
 Inscripcion.hasMany(SnapshotMazoInscripcion, { foreignKey: 'inscripcion_id' });
 
-SnapshotMazoInscripcion.belongsTo(Carta, { foreignKey: 'carta_id' });
+SnapshotMazoInscripcion.belongsTo(Carta, { foreignKey: 'carta_id', as: 'Carta' });
 Carta.hasMany(SnapshotMazoInscripcion, { foreignKey: 'carta_id' });
-// TODO: completar asociación SnapshotMazoInscripcion ↔ Carta cuando Persona B agregue Carta
 
 // --- Ronda ↔ Torneo ---
 

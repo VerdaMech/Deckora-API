@@ -212,6 +212,7 @@ export function obtenerSnapshotInscripcion(inscripcionId) {
     include: [
       {
         model: Carta,
+        as: 'Carta',
         attributes: ['id', 'nombre', 'tipo', 'costo_mana', 'imagen_url', 'colors'],
       },
     ],
