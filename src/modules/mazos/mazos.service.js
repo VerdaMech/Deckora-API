@@ -75,6 +75,12 @@ export async function eliminarCarta(mazoId, scryfallId, jugadorId) {
   return repo.eliminarCarta(mazoId, carta.id);
 }
 
+export async function eliminar(mazoId, jugadorId) {
+  const mazo = await repo.buscarPorId(mazoId);
+  verificarPropietario(mazo, jugadorId);
+  return repo.eliminar(mazoId);
+}
+
 export async function actualizar(mazoId, jugadorId, datos) {
   const mazo = await repo.buscarPorId(mazoId);
   verificarPropietario(mazo, jugadorId);
@@ -189,13 +195,35 @@ export async function autocompletar(mazoId, jugadorId) {
   const mazo = await repo.buscarPorId(mazoId);
   verificarPropietario(mazo, jugadorId);
 
-  const cartasActuales = mazo.MazoCartas ?? [];
+  let cartasActuales = mazo.MazoCartas ?? [];
+  const idsEnMazo = new Set(cartasActuales.map((mc) => mc.carta_id));
+  const agregadas = [];
+  const fallidas = [];
+
+  // Para Commander: agregar el comandante primero si no está en el mazo
+  if (mazo.formato === 'COMMANDER' && mazo.comandante) {
+    const yaTieneComandante = cartasActuales.some((mc) => mc.es_comandante);
+    if (!yaTieneComandante) {
+      let cartaCmd = await cartasRepository.buscarPorNombreExacto(mazo.comandante, 'COMMANDER');
+      if (!cartaCmd) {
+        const resultados = await cartasRepository.buscarPorNombre(mazo.comandante, 1);
+        cartaCmd = resultados[0] ?? null;
+      }
+      if (cartaCmd && !idsEnMazo.has(cartaCmd.id)) {
+        await repo.agregarCarta(mazoId, cartaCmd.id, 1, true);
+        idsEnMazo.add(cartaCmd.id);
+        agregadas.push({ nombre: cartaCmd.nombre, cantidad: 1, esComandante: true });
+        cartasActuales = [...cartasActuales, { carta_id: cartaCmd.id, cantidad: 1, es_comandante: true }];
+      }
+    }
+  }
+
   const objetivo = OBJETIVO_CARTAS[mazo.formato] ?? 60;
   const totalActual = cartasActuales.reduce((s, mc) => s + (mc.cantidad ?? 1), 0);
   const necesarias = Math.max(0, objetivo - totalActual);
 
   if (necesarias === 0) {
-    return { agregadas: [], fallidas: [], mensaje: 'El mazo ya está completo.' };
+    return { agregadas, fallidas, mensaje: 'El mazo ya está completo.' };
   }
 
   const nombresExistentes = cartasActuales.map((mc) => mc.Carta?.nombre).filter(Boolean);
@@ -207,17 +235,14 @@ export async function autocompletar(mazoId, jugadorId) {
     necesarias,
   );
 
-  const idsEnMazo = new Set(cartasActuales.map((mc) => mc.carta_id));
-  const agregadas = [];
-  const fallidas = [];
-
+  const esCommander = mazo.formato === 'COMMANDER';
   const lineas = listaTexto.split('\n').map((l) => l.trim()).filter(Boolean);
 
   for (const linea of lineas) {
     const match = linea.match(/^(\d+)\s+(.+)$/);
     if (!match) continue;
 
-    const cantidad = parseInt(match[1], 10);
+    const cantidad = esCommander ? parseInt(match[1], 10) : 1;
     const nombre = match[2].trim();
 
     try {
