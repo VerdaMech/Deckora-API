@@ -147,10 +147,11 @@ function parsearLinea(linea) {
   return null;
 }
 
-export async function importarLista(mazoId, jugadorId, lista) {
+export async function importarLista(mazoId, jugadorId, lista, comandante) {
   const mazo = await repo.buscarPorId(mazoId);
   verificarPropietario(mazo, jugadorId);
 
+  const nombreComandante = comandante?.trim().toLowerCase() ?? null;
   const lineas = lista.split('\n').map((l) => l.trim()).filter(Boolean);
   const importadas = [];
   const fallidas = [];
@@ -177,7 +178,11 @@ export async function importarLista(mazoId, jugadorId, lista) {
         continue;
       }
 
-      await repo.agregarCarta(mazoId, carta.id, parsed.cantidad, false);
+      const esComandante = nombreComandante
+        ? carta.nombre.toLowerCase() === nombreComandante
+        : false;
+
+      await repo.agregarCarta(mazoId, carta.id, parsed.cantidad, esComandante);
       importadas.push({ linea, nombre: carta.nombre, cantidad: parsed.cantidad });
     } catch (err) {
       if (err.name === 'SequelizeUniqueConstraintError') {
@@ -186,6 +191,10 @@ export async function importarLista(mazoId, jugadorId, lista) {
         fallidas.push({ linea, error: err.message ?? 'Error al agregar la carta' });
       }
     }
+  }
+
+  if (nombreComandante) {
+    await repo.actualizar(mazoId, { comandante });
   }
 
   return { importadas, fallidas };

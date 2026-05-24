@@ -22,6 +22,7 @@ export const actualizarCartaMazoSchema = z.object({
 
 export const importarMazoSchema = z.object({
   lista: z.string().min(1),
+  comandante: z.string().optional(),
 });
 
 export const actualizarMazoSchema = z.object({
