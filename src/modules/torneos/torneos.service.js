@@ -1,6 +1,8 @@
 import * as repo from './torneos.repository.js';
 import * as mazosRepo from '../mazos/mazos.repository.js';
+import { estrategias } from '../mazos/estrategias/index.js';
 import { sequelize } from '../../models/index.js';
+import * as emailService from '../notificaciones/email.service.js';
 
 export function listar(filtros = {}) {
   return repo.listar({
@@ -90,11 +92,41 @@ export async function inscribir(torneoId, jugadorId, mazoId) {
     throw error;
   }
 
+  if (mazo.formato !== torneo.formato) {
+    const error = new Error(
+      `El mazo es de formato ${mazo.formato} pero el torneo es ${torneo.formato}`,
+    );
+    error.status = 400;
+    throw error;
+  }
+
+  const estrategia = estrategias[mazo.formato];
+  if (estrategia) {
+    const cartasPlanas = (mazo.MazoCartas ?? []).map((mc) => ({
+      nombre: mc.Carta?.nombre,
+      tipo: mc.Carta?.tipo,
+      costo_mana: mc.Carta?.costo_mana,
+      es_tierra_basica: mc.Carta?.es_tierra_basica ?? false,
+      cantidad: mc.cantidad,
+      es_comandante: mc.es_comandante,
+    }));
+    const validacion = estrategia({ formato: mazo.formato, cartas: cartasPlanas });
+    if (!validacion.valido) {
+      const razones = (validacion.errores ?? []).join('; ');
+      const error = new Error(
+        `El mazo no cumple los requisitos del formato ${mazo.formato}: ${razones}`,
+      );
+      error.status = 400;
+      throw error;
+    }
+  }
+
   const inscripcion = await repo.crearInscripcion({
     torneo_id: torneoId,
     usuario_id: jugadorId,
     mazo_id: mazoId,
     fecha_inscripcion: new Date(),
+    confirmado: false,
   });
 
   const cartasMazo = mazo.MazoCartas ?? [];
@@ -109,6 +141,20 @@ export async function inscribir(torneoId, jugadorId, mazoId) {
     ),
   );
 
+  Promise.all([
+    repo.buscarUsuarioPorId(torneo.organizador_id),
+    repo.buscarUsuarioPorId(jugadorId),
+  ]).then(([organizador, jugador]) => {
+    if (organizador?.correo) {
+      emailService.notificarSolicitudInscripcion({
+        correoOrganizador: organizador.correo,
+        nombreJugador: jugador?.nombre_usuario ?? 'Jugador',
+        nombreTorneo: torneo.nombre,
+        nombreMazo: mazo.nombre,
+      }).catch((err) => console.error('[email] solicitudInscripcion:', err.message));
+    }
+  }).catch((err) => console.error('[email] solicitudInscripcion fetch:', err.message));
+
   return inscripcion;
 }
 
@@ -116,7 +162,7 @@ export function listarInscripciones(torneoId) {
   return repo.listarInscripciones(torneoId);
 }
 
-export async function cancelarInscripcion(torneoId, inscripcionId, jugadorId) {
+export async function cancelarInscripcion(torneoId, inscripcionId, jugadorId, rolUsuario) {
   const inscripcion = await repo.buscarInscripcionPorId(inscripcionId);
   if (!inscripcion) {
     const err = new Error('Inscripción no encontrada');
@@ -128,11 +174,98 @@ export async function cancelarInscripcion(torneoId, inscripcionId, jugadorId) {
     err.status = 400;
     throw err;
   }
-  if (inscripcion.usuario_id !== jugadorId) {
-    const err = new Error('No puedes cancelar una inscripción que no te pertenece');
+  if (rolUsuario === 'organizador' || rolUsuario === 'tienda') {
+    const torneo = await repo.buscarPorId(torneoId);
+    if (!torneo || torneo.organizador_id !== jugadorId) {
+      const err = new Error('No tienes permiso para cancelar esta inscripción');
+      err.status = 403;
+      throw err;
+    }
+  } else {
+    if (inscripcion.usuario_id !== jugadorId) {
+      const err = new Error('No puedes cancelar una inscripción que no te pertenece');
+      err.status = 403;
+      throw err;
+    }
+  }
+  await repo.eliminarInscripcion(inscripcionId);
+}
+
+export async function listarPendientes(torneoId, usuarioId) {
+  const torneo = await repo.buscarPorId(torneoId);
+  if (!torneo) {
+    const err = new Error('Torneo no encontrado');
+    err.status = 404;
+    throw err;
+  }
+  if (torneo.organizador_id !== usuarioId) {
+    const err = new Error('No tienes permiso para ver las inscripciones pendientes');
     err.status = 403;
     throw err;
   }
+  return repo.listarInscripcionesPendientes(torneoId);
+}
+
+export async function aprobarInscripcion(torneoId, inscripcionId, usuarioId) {
+  const torneo = await repo.buscarPorId(torneoId);
+  if (!torneo) {
+    const err = new Error('Torneo no encontrado');
+    err.status = 404;
+    throw err;
+  }
+  if (torneo.organizador_id !== usuarioId) {
+    const err = new Error('No tienes permiso para aprobar inscripciones');
+    err.status = 403;
+    throw err;
+  }
+  const inscripcion = await repo.buscarInscripcionPorId(inscripcionId);
+  if (!inscripcion || inscripcion.torneo_id !== torneoId) {
+    const err = new Error('Inscripción no encontrada');
+    err.status = 404;
+    throw err;
+  }
+  const resultado = await repo.aprobarInscripcion(inscripcionId);
+
+  repo.buscarUsuarioPorId(inscripcion.usuario_id).then((jugador) => {
+    if (jugador?.correo) {
+      emailService.notificarInscripcionAceptada({
+        correoJugador: jugador.correo,
+        nombreTorneo: torneo.nombre,
+      }).catch((err) => console.error('[email] inscripcionAceptada:', err.message));
+    }
+  }).catch((err) => console.error('[email] inscripcionAceptada fetch:', err.message));
+
+  return resultado;
+}
+
+export async function rechazarInscripcion(torneoId, inscripcionId, usuarioId) {
+  const torneo = await repo.buscarPorId(torneoId);
+  if (!torneo) {
+    const err = new Error('Torneo no encontrado');
+    err.status = 404;
+    throw err;
+  }
+  if (torneo.organizador_id !== usuarioId) {
+    const err = new Error('No tienes permiso para rechazar inscripciones');
+    err.status = 403;
+    throw err;
+  }
+  const inscripcion = await repo.buscarInscripcionPorId(inscripcionId);
+  if (!inscripcion || inscripcion.torneo_id !== torneoId) {
+    const err = new Error('Inscripción no encontrada');
+    err.status = 404;
+    throw err;
+  }
+
+  repo.buscarUsuarioPorId(inscripcion.usuario_id).then((jugador) => {
+    if (jugador?.correo) {
+      emailService.notificarInscripcionRechazada({
+        correoJugador: jugador.correo,
+        nombreTorneo: torneo.nombre,
+      }).catch((err) => console.error('[email] inscripcionRechazada:', err.message));
+    }
+  }).catch((err) => console.error('[email] inscripcionRechazada fetch:', err.message));
+
   await repo.eliminarInscripcion(inscripcionId);
 }
 
@@ -175,6 +308,9 @@ export async function obtenerTablaPosiciones(torneoId) {
   return tabla.map((e, i) => ({ ...e, posicion: i + 1 }));
 }
 
+const MIN_JUGADORES = { COMMANDER: 3 };
+const MIN_DEFAULT = 2;
+
 export async function cambiarEstado(torneoId, usuarioId, { estado }) {
   const torneo = await repo.buscarPorId(torneoId);
   if (!torneo) {
@@ -192,7 +328,60 @@ export async function cambiarEstado(torneoId, usuarioId, { estado }) {
     error.status = 409;
     throw error;
   }
+  if (estado === 'en_curso') {
+    const min = MIN_JUGADORES[torneo.formato] ?? MIN_DEFAULT;
+    const confirmados = await repo.contarInscripcionesConfirmadas(torneoId);
+    if (confirmados < min) {
+      const error = new Error(
+        `No se puede iniciar el torneo: se necesitan al menos ${min} jugadores confirmados (hay ${confirmados})`
+      );
+      error.status = 400;
+      throw error;
+    }
+  }
+  if (estado === 'finalizado') {
+    const pendientes = await repo.verificarEnfrentamientosPendientes(torneoId);
+    if (pendientes > 0) {
+      const error = new Error(
+        'No se puede finalizar el torneo: hay enfrentamientos sin resultado registrado'
+      );
+      error.status = 409;
+      throw error;
+    }
+
+    const jugadoresIds = await repo.obtenerJugadoresInscritos(torneoId);
+    return sequelize.transaction(async (t) => {
+      await Promise.all(
+        jugadoresIds.map(async (jugadorId) => {
+          await repo.buscarOCrearEstadistica(jugadorId, t);
+          return repo.incrementarTorneosParticipados(jugadorId, t);
+        }),
+      );
+      return repo.actualizar(torneoId, { estado });
+    });
+  }
   return repo.actualizar(torneoId, { estado });
+}
+
+export async function obtenerSnapshotInscripcion(torneoId, inscripcionId, usuarioId) {
+  const torneo = await repo.buscarPorId(torneoId);
+  if (!torneo) {
+    const err = new Error('Torneo no encontrado');
+    err.status = 404;
+    throw err;
+  }
+  if (torneo.organizador_id !== usuarioId) {
+    const err = new Error('No tienes permiso para ver el snapshot de este torneo');
+    err.status = 403;
+    throw err;
+  }
+  const inscripcion = await repo.buscarInscripcionPorId(inscripcionId);
+  if (!inscripcion || inscripcion.torneo_id !== torneoId) {
+    const err = new Error('Inscripción no encontrada');
+    err.status = 404;
+    throw err;
+  }
+  return repo.obtenerSnapshotInscripcion(inscripcionId);
 }
 
 export async function cerrarTorneo(torneoId, usuarioId) {

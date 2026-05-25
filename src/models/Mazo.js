@@ -25,6 +25,10 @@ const Mazo = sequelize.define('Mazo', {
   descripcion: {
     type: DataTypes.TEXT,
   },
+  comandante: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
   publico: {
     type: DataTypes.BOOLEAN,
     defaultValue: false,

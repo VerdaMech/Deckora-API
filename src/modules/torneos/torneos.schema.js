@@ -11,7 +11,10 @@ export const crearTorneoSchema = z.object({
   ubicacion: z.string().optional(),
   precio: z.number().int().min(0).optional(),
   publico: z.boolean().optional(),
-});
+}).refine(
+  (data) => new Date(data.fecha) > new Date(),
+  { message: 'La fecha del torneo no puede ser en el pasado', path: ['fecha'] },
+);
 
 export const actualizarTorneoSchema = z.object({
   nombre: z.string().min(3).optional(),
@@ -22,9 +25,14 @@ export const actualizarTorneoSchema = z.object({
   ubicacion: z.string().optional(),
   precio: z.number().int().min(0).optional(),
   publico: z.boolean().optional(),
-}).refine((data) => Object.keys(data).length > 0, {
-  message: 'Debes enviar al menos un campo para actualizar',
-});
+})
+  .refine((data) => Object.keys(data).length > 0, {
+    message: 'Debes enviar al menos un campo para actualizar',
+  })
+  .refine(
+    (data) => !data.fecha || new Date(data.fecha) > new Date(),
+    { message: 'La fecha del torneo no puede ser en el pasado', path: ['fecha'] },
+  );
 
 export const inscribirSchema = z.object({
   mazo_id: z.string().uuid(),

@@ -33,7 +33,11 @@ export async function obtenerMias(jugadorId) {
 }
 
 export async function obtenerPublico(jugadorId) {
-  const estadistica = await repo.buscarPorJugadorPublico(jugadorId);
+  const [estadistica, historialUltimosMeses, mazoRows] = await Promise.all([
+    repo.buscarPorJugadorPublico(jugadorId),
+    repo.buscarHistorialMeses(jugadorId),
+    repo.buscarMazoMasJugado(jugadorId),
+  ]);
 
   if (!estadistica) {
     return {
@@ -45,6 +49,7 @@ export async function obtenerPublico(jugadorId) {
       total_partidas: 0,
       porcentaje_victorias: '0.0',
       Jugador: null,
+      historialUltimosMeses: [],
     };
   }
 
@@ -62,7 +67,13 @@ export async function obtenerPublico(jugadorId) {
     ...estadistica.toJSON(),
     total_partidas: total,
     porcentaje_victorias: porcentaje,
+    historialUltimosMeses,
+    mazoMasJugado: mazoRows[0] ?? null,
   };
+}
+
+export async function obtenerHistorialDiario(jugadorId, mesKey) {
+  return repo.buscarHistorialDias(jugadorId, mesKey);
 }
 
 export async function obtenerRanking() {

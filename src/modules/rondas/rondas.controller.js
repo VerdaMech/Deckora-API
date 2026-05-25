@@ -29,3 +29,13 @@ export async function obtenerRonda(req, res, next) {
     next(err);
   }
 }
+
+export async function eliminarRonda(req, res, next) {
+  try {
+    const { torneoId, rondaId } = req.params;
+    await rondasService.eliminarRonda(torneoId, rondaId, req.usuario.id);
+    res.status(204).end();
+  } catch (err) {
+    next(err);
+  }
+}

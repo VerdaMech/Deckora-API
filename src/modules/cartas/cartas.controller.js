@@ -1,12 +1,16 @@
 import * as cartasService from './cartas.service.js';
 
+const FORMATOS_VALIDOS = ['COMMANDER', 'STANDARD', 'MODERN', 'PIONEER', 'LEGACY'];
+
 export async function buscar(req, res, next) {
   try {
-    const { q } = req.query;
+    const { q, formato } = req.query;
     if (!q) {
-      return res.status(400).json({ error: 'El parÃ¡metro q es requerido' });
+      return res.status(400).json({ error: 'El parámetro q es requerido' });
     }
-    const cartas = await cartasService.buscarEnBD(q);
+    const formatoNorm = formato ? formato.toUpperCase() : null;
+    const formatoValido = FORMATOS_VALIDOS.includes(formatoNorm) ? formatoNorm : null;
+    const cartas = await cartasService.buscarEnBD(q, formatoValido);
     res.json(cartas);
   } catch (err) {
     next(err);

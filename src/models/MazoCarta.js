@@ -26,7 +26,9 @@ const MazoCarta = sequelize.define('MazoCarta', {
   },
 }, {
   tableName: 'mazo_cartas',
-  timestamps: false,
+  createdAt: 'created_at',
+  updatedAt: false,
+  timestamps: true,
   indexes: [
     {
       // Una carta no puede aparecer dos veces en el mismo mazo; para eso está cantidad

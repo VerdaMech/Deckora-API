@@ -8,5 +8,6 @@ const router = Router();
 router.get('/mias', auth, requirePerfil('jugador'), estadisticasController.obtenerMias);
 router.get('/ranking', estadisticasController.obtenerRanking);
 router.get('/jugadores/:jugadorId', estadisticasController.obtenerPublico);
+router.get('/jugadores/:jugadorId/historial-diario', estadisticasController.obtenerHistorialDiario);
 
 export default router;

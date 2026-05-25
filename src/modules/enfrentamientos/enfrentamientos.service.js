@@ -38,7 +38,7 @@ export async function registrarResultado(id, { resultados }, usuarioId) {
     throw err;
   }
 
-  const participanteIds = enfrentamiento.EnfrentamientoParticipantes.map(
+  const participanteIds = enfrentamiento.participantes.map(
     (p) => p.inscripcion_id
   );
   const resultadoIds = resultados.map((r) => r.inscripcion_id);
@@ -73,7 +73,7 @@ export async function registrarResultado(id, { resultados }, usuarioId) {
   const t = await sequelize.transaction();
   try {
     for (const r of resultados) {
-      const participante = enfrentamiento.EnfrentamientoParticipantes.find(
+      const participante = enfrentamiento.participantes.find(
         (p) => p.inscripcion_id === r.inscripcion_id
       );
       const puntos = PUNTOS[r.resultado];

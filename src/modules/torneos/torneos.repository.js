@@ -3,6 +3,7 @@ import {
   Torneo,
   Inscripcion,
   SnapshotMazoInscripcion,
+  Carta,
   Jugador,
   Mazo,
   Usuario,
@@ -35,7 +36,7 @@ export function listar({ organizadorId, incluirTodos = false, formato, estado, d
 
   return Torneo.findAll({
     where,
-    include: [{ model: Inscripcion, attributes: [] }],
+    include: [{ model: Inscripcion, attributes: [], where: { confirmado: true }, required: false }],
     attributes: {
       include: [
         [Torneo.sequelize.fn('COUNT', Torneo.sequelize.col('Inscripcions.id')), 'inscritos_count'],
@@ -100,9 +101,13 @@ export function listarInscripciones(torneoId) {
         model: Jugador,
         include: [{ model: Usuario, attributes: ['id', 'correo', 'nombre_usuario'] }],
       },
-      { model: Mazo, attributes: ['id', 'nombre', 'formato', 'slug'] },
+      { model: Mazo, attributes: ['id', 'nombre', 'formato', 'slug', 'comandante'] },
     ],
   });
+}
+
+export function contarInscripcionesConfirmadas(torneoId) {
+  return Inscripcion.count({ where: { torneo_id: torneoId, confirmado: true } });
 }
 
 export function obtenerTablaPosiciones(torneoId) {
@@ -140,6 +145,21 @@ export async function verificarEnfrentamientosPendientes(torneoId) {
   });
 }
 
+export function buscarOCrearEstadistica(jugadorId, transaction) {
+  return Estadistica.findOrCreate({
+    where: { usuario_id: jugadorId },
+    defaults: {
+      usuario_id: jugadorId,
+      partidas_ganadas: 0,
+      partidas_perdidas: 0,
+      partidas_empatadas: 0,
+      torneos_participados: 0,
+      ultima_actualizacion: new Date(),
+    },
+    transaction,
+  });
+}
+
 export function incrementarTorneosParticipados(jugadorId, transaction) {
   return Estadistica.increment('torneos_participados', {
     where: { usuario_id: jugadorId },
@@ -149,7 +169,7 @@ export function incrementarTorneosParticipados(jugadorId, transaction) {
 
 export async function obtenerJugadoresInscritos(torneoId) {
   const inscripciones = await Inscripcion.findAll({
-    where: { torneo_id: torneoId },
+    where: { torneo_id: torneoId, confirmado: true },
     attributes: ['usuario_id'],
   });
   return inscripciones.map((i) => i.usuario_id);
@@ -161,4 +181,40 @@ export function buscarInscripcionPorId(id) {
 
 export function eliminarInscripcion(id) {
   return Inscripcion.destroy({ where: { id } });
+}
+
+export function listarInscripcionesPendientes(torneoId) {
+  return Inscripcion.findAll({
+    where: { torneo_id: torneoId, confirmado: false },
+    include: [
+      {
+        model: Jugador,
+        include: [{ model: Usuario, attributes: ['id', 'nombre_usuario', 'correo'] }],
+      },
+      { model: Mazo, attributes: ['id', 'nombre', 'formato'] },
+      { model: SnapshotMazoInscripcion, attributes: ['carta_id', 'cantidad'] },
+    ],
+  });
+}
+
+export async function aprobarInscripcion(inscripcionId) {
+  await Inscripcion.update({ confirmado: true }, { where: { id: inscripcionId } });
+  return Inscripcion.findByPk(inscripcionId);
+}
+
+export function buscarUsuarioPorId(id) {
+  return Usuario.findByPk(id, { attributes: ['id', 'correo', 'nombre_usuario'] });
+}
+
+export function obtenerSnapshotInscripcion(inscripcionId) {
+  return SnapshotMazoInscripcion.findAll({
+    where: { inscripcion_id: inscripcionId },
+    include: [
+      {
+        model: Carta,
+        as: 'Carta',
+        attributes: ['id', 'nombre', 'tipo', 'costo_mana', 'imagen_url', 'colors'],
+      },
+    ],
+  });
 }

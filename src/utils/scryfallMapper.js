@@ -11,6 +11,7 @@ export function mapearCarta(c) {
     set_codigo: c.set ?? null,
     set_nombre: c.set_name ?? null,
     set_fecha_lanzamiento: c.released_at ?? null,
+    numero_colector: c.collector_number ?? null,
     es_tierra_basica: c.type_line?.includes('Basic Land') ?? false,
     embedding: null,
   };

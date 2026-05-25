@@ -2,7 +2,7 @@ import { UniqueConstraintError } from 'sequelize';
 import supabase from '../../config/supabase.js';
 import { Usuario, Jugador, Organizador, Tienda, Estadistica } from '../../models/index.js';
 
-export async function signup({ nombre_usuario, correo, password, rol }) {
+export async function signup({ nombre_usuario, correo, password, rol, nombre_tienda }) {
   const { data, error } = await supabase.auth.signUp({ email: correo, password });
 
   if (error) {
@@ -35,7 +35,7 @@ export async function signup({ nombre_usuario, correo, password, rol }) {
         await Organizador.create({ usuario_id: data.user.id });
         break;
       case 'tienda':
-        await Tienda.create({ usuario_id: data.user.id });
+        await Tienda.create({ usuario_id: data.user.id, nombre_tienda: nombre_tienda ?? null });
         break;
     }
   } catch (dbError) {

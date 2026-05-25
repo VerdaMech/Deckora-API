@@ -48,9 +48,8 @@ Mazo.hasMany(Inscripcion, { foreignKey: 'mazo_id' });
 SnapshotMazoInscripcion.belongsTo(Inscripcion, { foreignKey: 'inscripcion_id' });
 Inscripcion.hasMany(SnapshotMazoInscripcion, { foreignKey: 'inscripcion_id' });
 
-SnapshotMazoInscripcion.belongsTo(Carta, { foreignKey: 'carta_id' });
+SnapshotMazoInscripcion.belongsTo(Carta, { foreignKey: 'carta_id', as: 'Carta' });
 Carta.hasMany(SnapshotMazoInscripcion, { foreignKey: 'carta_id' });
-// TODO: completar asociación SnapshotMazoInscripcion ↔ Carta cuando Persona B agregue Carta
 
 // --- Ronda ↔ Torneo ---
 
@@ -60,12 +59,12 @@ Torneo.hasMany(Ronda, { foreignKey: 'torneo_id' });
 // --- Enfrentamiento ↔ Ronda ---
 
 Enfrentamiento.belongsTo(Ronda, { foreignKey: 'ronda_id' });
-Ronda.hasMany(Enfrentamiento, { foreignKey: 'ronda_id' });
+Ronda.hasMany(Enfrentamiento, { foreignKey: 'ronda_id', as: 'enfrentamientos' });
 
 // --- EnfrentamientoParticipante ↔ Enfrentamiento / Inscripcion ---
 
 EnfrentamientoParticipante.belongsTo(Enfrentamiento, { foreignKey: 'enfrentamiento_id' });
-Enfrentamiento.hasMany(EnfrentamientoParticipante, { foreignKey: 'enfrentamiento_id' });
+Enfrentamiento.hasMany(EnfrentamientoParticipante, { foreignKey: 'enfrentamiento_id', as: 'participantes' });
 
 EnfrentamientoParticipante.belongsTo(Inscripcion, { foreignKey: 'inscripcion_id' });
 Inscripcion.hasMany(EnfrentamientoParticipante, { foreignKey: 'inscripcion_id' });

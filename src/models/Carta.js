@@ -32,6 +32,18 @@ const Carta = sequelize.define('Carta', {
   costo_mana: {
     type: DataTypes.STRING,
   },
+  cmc: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+  },
+  colors: {
+    type: DataTypes.ARRAY(DataTypes.TEXT),
+    allowNull: true,
+  },
+  legalities: {
+    type: DataTypes.JSONB,
+    allowNull: true,
+  },
   imagen_url: {
     // URL de Scryfall, nunca imagen local
     type: DataTypes.STRING,
@@ -45,6 +57,10 @@ const Carta = sequelize.define('Carta', {
   },
   set_fecha_lanzamiento: {
     type: DataTypes.DATEONLY,
+    allowNull: true,
+  },
+  numero_colector: {
+    type: DataTypes.STRING(20),
     allowNull: true,
   },
   es_tierra_basica: {
