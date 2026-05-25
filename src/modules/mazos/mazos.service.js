@@ -91,12 +91,6 @@ export async function actualizar(mazoId, jugadorId, datos) {
   return repo.actualizar(mazoId, payload);
 }
 
-export async function eliminar(mazoId, jugadorId) {
-  const mazo = await repo.buscarPorId(mazoId);
-  verificarPropietario(mazo, jugadorId);
-  await repo.eliminar(mazoId);
-}
-
 export async function recomendarCartas(mazoId, jugadorId) {
   const mazo = await repo.buscarPorId(mazoId);
   verificarPropietario(mazo, jugadorId);
