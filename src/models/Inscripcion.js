@@ -20,7 +20,7 @@ const Inscripcion = sequelize.define(
     },
     mazo_id: {
       type: DataTypes.UUID,
-      allowNull: false,
+      allowNull: true,
     },
     fecha_inscripcion: {
       type: DataTypes.DATE,

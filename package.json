@@ -10,7 +10,9 @@
     "db:migrate": "sequelize-cli db:migrate",
     "db:migrate:undo": "sequelize-cli db:migrate:undo",
     "db:seed": "sequelize-cli db:seed:all",
-    "embed:generate": "node scripts/generateEmbeddings.js"
+    "embed:generate": "node scripts/generateEmbeddings.js",
+    "seed:cartas": "node scripts/seedCartas.js",
+    "seed:cartas:commander": "node scripts/seedCartas.js --commander"
   },
   "repository": {
     "type": "git",

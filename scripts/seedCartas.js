@@ -14,7 +14,7 @@
 //   - npm install pg dotenv
 
 import 'dotenv/config';
-import { Client } from 'pg';
+import { Pool } from 'pg';
 
 const SCRYFALL_BULK_URL = 'https://api.scryfall.com/bulk-data';
 
@@ -26,6 +26,9 @@ const limitArg = args.indexOf('--limit');
 const LIMIT = limitArg !== -1 ? parseInt(args[limitArg + 1], 10) : null;
 const COMMANDER_ONLY = args.includes('--commander');
 const DEBUG = args.includes('--debug');
+
+const BATCH_SIZE = 500;   // cartas por query multi-row
+const PARALLEL = 5;       // batches en paralelo
 
 // ─────────────────────────────────────────────
 // Helpers
@@ -40,11 +43,7 @@ async function fetchJson(url) {
 
   if (!res.ok) {
     let body = '';
-    try {
-      body = await res.text();
-    } catch {
-      // ignorado
-    }
+    try { body = await res.text(); } catch { /* ignorado */ }
     throw new Error(
       `HTTP ${res.status} ${res.statusText} en ${url}\n  Cuerpo: ${body.slice(0, 500)}`
     );
@@ -53,9 +52,7 @@ async function fetchJson(url) {
   const json = await res.json();
   if (DEBUG) {
     console.log('  [debug] keys de la respuesta:', Object.keys(json));
-    if (Array.isArray(json)) {
-      console.log(`  [debug] array de ${json.length} elementos`);
-    }
+    if (Array.isArray(json)) console.log(`  [debug] array de ${json.length} elementos`);
   }
   return json;
 }
@@ -110,10 +107,133 @@ function shouldIncludeCard(card) {
     const legality = card.legalities?.commander;
     if (legality === 'banned' || legality === 'not_legal') return false;
   } else {
-    if (card.legalities?.commander === 'banned') return false;
+    const legalities = card.legalities ?? {};
+    const formatos = ['commander', 'standard', 'modern', 'pioneer', 'legacy'];
+    const legalEnAlguno = formatos.some(
+      (f) => legalities[f] === 'legal' || legalities[f] === 'restricted',
+    );
+    if (!legalEnAlguno) return false;
   }
 
   return true;
+}
+
+// Construye un INSERT multi-row para un array de cartas ya mapeadas.
+// Devuelve { text, values }.
+function buildBatchInsert(cartas) {
+  const FIELDS = 16;
+  const rows = [];
+  const values = [];
+
+  cartas.forEach((c, i) => {
+    const base = i * FIELDS;
+    rows.push(
+      `($${base + 1},$${base + 2},$${base + 3},$${base + 4},$${base + 5},` +
+      `$${base + 6},$${base + 7},$${base + 8},$${base + 9},$${base + 10},` +
+      `$${base + 11},$${base + 12},$${base + 13},$${base + 14},$${base + 15},$${base + 16}::jsonb)`
+    );
+    values.push(
+      c.scryfall_id, c.nombre, c.tipo, c.resistencia, c.fuerza,
+      c.texto, c.costo_mana, c.imagen_url, c.set_codigo, c.set_nombre,
+      c.set_fecha_lanzamiento, c.numero_colector, c.es_tierra_basica,
+      c.cmc, c.colors, JSON.stringify(c.legalities),
+    );
+  });
+
+  const text = `
+    INSERT INTO cartas (
+      scryfall_id, nombre, tipo, resistencia, fuerza,
+      texto, costo_mana, imagen_url, set_codigo, set_nombre,
+      set_fecha_lanzamiento, numero_colector, es_tierra_basica,
+      cmc, colors, legalities
+    ) VALUES ${rows.join(',')}
+    ON CONFLICT (scryfall_id) DO UPDATE SET
+      nombre = EXCLUDED.nombre,
+      tipo = EXCLUDED.tipo,
+      resistencia = EXCLUDED.resistencia,
+      fuerza = EXCLUDED.fuerza,
+      texto = EXCLUDED.texto,
+      costo_mana = EXCLUDED.costo_mana,
+      imagen_url = EXCLUDED.imagen_url,
+      set_codigo = EXCLUDED.set_codigo,
+      set_nombre = EXCLUDED.set_nombre,
+      set_fecha_lanzamiento = EXCLUDED.set_fecha_lanzamiento,
+      numero_colector = EXCLUDED.numero_colector,
+      es_tierra_basica = EXCLUDED.es_tierra_basica,
+      cmc = EXCLUDED.cmc,
+      colors = EXCLUDED.colors,
+      legalities = EXCLUDED.legalities
+  `;
+
+  return { text, values };
+}
+
+// Inserta un batch usando un cliente del pool.
+// Si el INSERT multi-row falla, reintenta carta por carta.
+async function insertBatch(pool, cartas) {
+  let inserted = 0;
+  let failed = 0;
+  const failedNames = [];
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    try {
+      const { text, values } = buildBatchInsert(cartas);
+      await client.query(text, values);
+      inserted = cartas.length;
+      await client.query('COMMIT');
+    } catch (batchErr) {
+      await client.query('ROLLBACK');
+
+      // Fallback: insertar carta por carta
+      await client.query('BEGIN');
+      for (const c of cartas) {
+        try {
+          await client.query(
+            `INSERT INTO cartas (
+               scryfall_id, nombre, tipo, resistencia, fuerza,
+               texto, costo_mana, imagen_url, set_codigo, set_nombre,
+               set_fecha_lanzamiento, numero_colector, es_tierra_basica,
+               cmc, colors, legalities
+             )
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16::jsonb)
+             ON CONFLICT (scryfall_id) DO UPDATE SET
+               nombre = EXCLUDED.nombre,
+               tipo = EXCLUDED.tipo,
+               resistencia = EXCLUDED.resistencia,
+               fuerza = EXCLUDED.fuerza,
+               texto = EXCLUDED.texto,
+               costo_mana = EXCLUDED.costo_mana,
+               imagen_url = EXCLUDED.imagen_url,
+               set_codigo = EXCLUDED.set_codigo,
+               set_nombre = EXCLUDED.set_nombre,
+               set_fecha_lanzamiento = EXCLUDED.set_fecha_lanzamiento,
+               numero_colector = EXCLUDED.numero_colector,
+               es_tierra_basica = EXCLUDED.es_tierra_basica,
+               cmc = EXCLUDED.cmc,
+               colors = EXCLUDED.colors,
+               legalities = EXCLUDED.legalities`,
+            [
+              c.scryfall_id, c.nombre, c.tipo, c.resistencia, c.fuerza,
+              c.texto, c.costo_mana, c.imagen_url, c.set_codigo, c.set_nombre,
+              c.set_fecha_lanzamiento, c.numero_colector, c.es_tierra_basica,
+              c.cmc, c.colors, JSON.stringify(c.legalities),
+            ]
+          );
+          inserted++;
+        } catch {
+          failed++;
+          failedNames.push(c.nombre);
+        }
+      }
+      await client.query('COMMIT');
+    }
+  } finally {
+    client.release();
+  }
+
+  return { inserted, failed, failedNames };
 }
 
 // ─────────────────────────────────────────────
@@ -126,6 +246,7 @@ async function main() {
   if (LIMIT) console.log(`  Modo: prueba (límite ${LIMIT})`);
   if (COMMANDER_ONLY) console.log('  Filtro: solo cartas legales en Commander');
   if (DEBUG) console.log('  Modo debug: ON');
+  console.log(`  Batch: ${BATCH_SIZE} cartas | Paralelismo: ${PARALLEL} conexiones`);
   console.log('');
 
   // 1. Manifest de bulk data
@@ -133,9 +254,7 @@ async function main() {
   const manifest = await fetchJson(SCRYFALL_BULK_URL);
 
   if (!manifest || !Array.isArray(manifest.data)) {
-    console.error('');
     console.error('✗ La respuesta de Scryfall no tiene el formato esperado.');
-    console.error('  Recibí:', JSON.stringify(manifest, null, 2).slice(0, 1000));
     throw new Error('Respuesta inesperada de Scryfall (no hay manifest.data)');
   }
 
@@ -157,106 +276,74 @@ async function main() {
   }
   console.log(`  ${cards.length.toLocaleString()} cartas en el catálogo crudo`);
 
-  // 3. Filtrar
-  const filtered = cards.filter(shouldIncludeCard);
+  // 3. Filtrar y mapear
+  const filtered = cards.filter(shouldIncludeCard).map(mapCard);
   console.log(`  ${filtered.length.toLocaleString()} cartas tras filtros`);
 
   const target = LIMIT ? filtered.slice(0, LIMIT) : filtered;
   console.log(`  ${target.length.toLocaleString()} cartas se van a insertar`);
   console.log('');
 
-  // 4. Conexión a la base
-  console.log('→ Conectando a la base de datos...');
-  const client = new Client({
+  // 4. Pool de conexiones
+  console.log('→ Conectando al pool de base de datos...');
+  const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: { rejectUnauthorized: false },
+    max: PARALLEL,
   });
-  await client.connect();
+
+  // Verificar conexión
+  const testClient = await pool.connect();
+  testClient.release();
   console.log('  Conectado.');
   console.log('');
 
-  // 5. Insertar en lotes con transacciones
+  // 5. Insertar en batches paralelos
   console.log('→ Insertando...');
   const startedAt = Date.now();
-  let inserted = 0;
-  let failed = 0;
-  const BATCH = 200;
+  let totalInserted = 0;
+  let totalFailed = 0;
+  const allFailedNames = [];
 
-  for (let i = 0; i < target.length; i += BATCH) {
-    const slice = target.slice(i, i + BATCH);
+  // Dividir en batches
+  const batches = [];
+  for (let i = 0; i < target.length; i += BATCH_SIZE) {
+    batches.push(target.slice(i, i + BATCH_SIZE));
+  }
 
-    await client.query('BEGIN');
-    for (const raw of slice) {
-      const c = mapCard(raw);
-      try {
-        await client.query(
-          `INSERT INTO cartas (
-             scryfall_id, nombre, tipo, resistencia, fuerza,
-             texto, costo_mana, imagen_url, set_codigo, set_nombre,
-             set_fecha_lanzamiento, numero_colector, es_tierra_basica,
-             cmc, colors, legalities
-           )
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
-           ON CONFLICT (scryfall_id) DO UPDATE SET
-             nombre = EXCLUDED.nombre,
-             tipo = EXCLUDED.tipo,
-             resistencia = EXCLUDED.resistencia,
-             fuerza = EXCLUDED.fuerza,
-             texto = EXCLUDED.texto,
-             costo_mana = EXCLUDED.costo_mana,
-             imagen_url = EXCLUDED.imagen_url,
-             set_codigo = EXCLUDED.set_codigo,
-             set_nombre = EXCLUDED.set_nombre,
-             set_fecha_lanzamiento = EXCLUDED.set_fecha_lanzamiento,
-             numero_colector = EXCLUDED.numero_colector,
-             es_tierra_basica = EXCLUDED.es_tierra_basica,
-             cmc = EXCLUDED.cmc,
-             colors = EXCLUDED.colors,
-             legalities = EXCLUDED.legalities`,
-          [
-            c.scryfall_id,
-            c.nombre,
-            c.tipo,
-            c.resistencia,
-            c.fuerza,
-            c.texto,
-            c.costo_mana,
-            c.imagen_url,
-            c.set_codigo,
-            c.set_nombre,
-            c.set_fecha_lanzamiento,
-            c.numero_colector,
-            c.es_tierra_basica,
-            c.cmc,
-            c.colors,
-            c.legalities,
-          ]
-        );
-        inserted++;
-      } catch (err) {
-        failed++;
-        if (failed < 5) {
-          console.error(`\n  ✗ Falló ${c.nombre}: ${err.message}`);
-        }
-      }
+  // Procesar batches en grupos de PARALLEL
+  for (let i = 0; i < batches.length; i += PARALLEL) {
+    const grupo = batches.slice(i, i + PARALLEL);
+    const resultados = await Promise.all(
+      grupo.map((batch) => insertBatch(pool, batch))
+    );
+
+    for (const r of resultados) {
+      totalInserted += r.inserted;
+      totalFailed += r.failed;
+      allFailedNames.push(...r.failedNames);
     }
-    await client.query('COMMIT');
 
-    const pct = ((inserted / target.length) * 100).toFixed(1);
+    const pct = ((totalInserted / target.length) * 100).toFixed(1);
     const elapsed = ((Date.now() - startedAt) / 1000).toFixed(0);
     process.stdout.write(
-      `\r  ${inserted.toLocaleString()}/${target.length.toLocaleString()} (${pct}%) — ${elapsed}s`
+      `\r  ${totalInserted.toLocaleString()}/${target.length.toLocaleString()} (${pct}%) — ${elapsed}s`
     );
   }
   console.log('');
 
-  await client.end();
+  await pool.end();
 
   const totalTime = ((Date.now() - startedAt) / 1000).toFixed(0);
   console.log('');
   console.log('═══════════════════════════════════════════');
-  console.log(`  ✓ Listo. Insertadas/actualizadas: ${inserted.toLocaleString()}`);
-  if (failed > 0) console.log(`  ⚠ Fallidas: ${failed}`);
+  console.log(`  ✓ Listo. Insertadas/actualizadas: ${totalInserted.toLocaleString()}`);
+  if (totalFailed > 0) {
+    console.log(`  ⚠ Fallidas: ${totalFailed}`);
+    if (allFailedNames.length > 0) {
+      console.log(`  Primeras fallidas: ${allFailedNames.slice(0, 5).join(', ')}`);
+    }
+  }
   console.log(`  Tiempo total: ${totalTime}s`);
   console.log('═══════════════════════════════════════════');
 }

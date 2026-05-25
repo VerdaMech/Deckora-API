@@ -91,6 +91,12 @@ export async function actualizar(mazoId, jugadorId, datos) {
   return repo.actualizar(mazoId, payload);
 }
 
+export async function eliminar(mazoId, jugadorId) {
+  const mazo = await repo.buscarPorId(mazoId);
+  verificarPropietario(mazo, jugadorId);
+  await repo.eliminar(mazoId);
+}
+
 export async function recomendarCartas(mazoId, jugadorId) {
   const mazo = await repo.buscarPorId(mazoId);
   verificarPropietario(mazo, jugadorId);
@@ -153,10 +159,11 @@ function parsearLinea(linea) {
   return null;
 }
 
-export async function importarLista(mazoId, jugadorId, lista) {
+export async function importarLista(mazoId, jugadorId, lista, comandante) {
   const mazo = await repo.buscarPorId(mazoId);
   verificarPropietario(mazo, jugadorId);
 
+  const nombreComandante = comandante?.trim().toLowerCase() ?? null;
   const lineas = lista.split('\n').map((l) => l.trim()).filter(Boolean);
   const importadas = [];
   const fallidas = [];
@@ -174,7 +181,10 @@ export async function importarLista(mazoId, jugadorId, lista) {
         carta = await cartasRepository.buscarPorSetYNumero(parsed.setCodigo, parsed.numeroColector);
       }
       if (!carta) {
-        const resultados = await cartasRepository.buscarPorNombre(parsed.nombre, 1);
+        carta = await cartasRepository.buscarPorNombreExacto(parsed.nombre, mazo.formato);
+      }
+      if (!carta) {
+        const resultados = await cartasRepository.buscarPorNombre(parsed.nombre, 1, mazo.formato);
         carta = resultados[0] ?? null;
       }
 
@@ -183,7 +193,11 @@ export async function importarLista(mazoId, jugadorId, lista) {
         continue;
       }
 
-      await repo.agregarCarta(mazoId, carta.id, parsed.cantidad, false);
+      const esComandante = nombreComandante
+        ? carta.nombre.toLowerCase() === nombreComandante
+        : false;
+
+      await repo.agregarCarta(mazoId, carta.id, parsed.cantidad, esComandante);
       importadas.push({ linea, nombre: carta.nombre, cantidad: parsed.cantidad });
     } catch (err) {
       if (err.name === 'SequelizeUniqueConstraintError') {
@@ -192,6 +206,10 @@ export async function importarLista(mazoId, jugadorId, lista) {
         fallidas.push({ linea, error: err.message ?? 'Error al agregar la carta' });
       }
     }
+  }
+
+  if (nombreComandante) {
+    await repo.actualizar(mazoId, { comandante });
   }
 
   return { importadas, fallidas };
@@ -284,6 +302,35 @@ export async function autocompletar(mazoId, jugadorId) {
         fallidas.push({ nombre, error: 'Ya está en el mazo' });
       } else {
         fallidas.push({ nombre, error: err.message ?? 'Error al agregar' });
+      }
+    }
+  }
+
+  // Para Commander: marcar el comandante si aún no hay ninguno marcado
+  if (mazo.formato === 'COMMANDER') {
+    const mazoActualizado = await repo.buscarPorId(mazoId);
+    const cartasFinales = mazoActualizado.MazoCartas ?? [];
+    const yaHayComandante = cartasFinales.some((mc) => mc.es_comandante);
+
+    if (!yaHayComandante) {
+      // 1. Intentar por nombre guardado en mazo.comandante
+      let mcComandante = mazo.comandante
+        ? cartasFinales.find(
+            (mc) => mc.Carta?.nombre?.toLowerCase() === mazo.comandante.toLowerCase(),
+          )
+        : null;
+
+      // 2. Si no, tomar cualquier criatura legendaria del mazo
+      if (!mcComandante) {
+        mcComandante = cartasFinales.find((mc) => {
+          const tipo = (mc.Carta?.tipo ?? '').toLowerCase();
+          return tipo.includes('legendary') && tipo.includes('creature');
+        });
+      }
+
+      if (mcComandante) {
+        await repo.actualizarCarta(mazoId, mcComandante.carta_id, { es_comandante: true });
+        await repo.actualizar(mazoId, { comandante: mcComandante.Carta.nombre });
       }
     }
   }

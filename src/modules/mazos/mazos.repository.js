@@ -84,7 +84,7 @@ export async function buscarRecomendaciones(embeddingPromedio, excluirIds, forma
     excluirIds.length > 0 ? 'AND id NOT IN (:excluirIds)' : '';
 
   const whereFormato = formato
-    ? `AND legalities->>'${formato.toLowerCase()}' = 'legal'`
+    ? `AND (legalities IS NULL OR legalities->>'${formato.toLowerCase()}' IS NULL OR legalities->>'${formato.toLowerCase()}' NOT IN ('banned', 'not_legal'))`
     : '';
 
   const sql = `
