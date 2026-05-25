@@ -73,6 +73,10 @@ export async function actualizar(id, datos) {
   return buscarPorId(id);
 }
 
+export function eliminar(id) {
+  return Mazo.destroy({ where: { id } });
+}
+
 export async function buscarRecomendaciones(embeddingPromedio, excluirIds, formato, limit = 10) {
   const embeddingStr = `[${embeddingPromedio.join(',')}]`;
 
@@ -80,7 +84,7 @@ export async function buscarRecomendaciones(embeddingPromedio, excluirIds, forma
     excluirIds.length > 0 ? 'AND id NOT IN (:excluirIds)' : '';
 
   const whereFormato = formato
-    ? `AND legalities->>'${formato.toLowerCase()}' = 'legal'`
+    ? `AND (legalities IS NULL OR legalities->>'${formato.toLowerCase()}' IS NULL OR legalities->>'${formato.toLowerCase()}' NOT IN ('banned', 'not_legal'))`
     : '';
 
   const sql = `

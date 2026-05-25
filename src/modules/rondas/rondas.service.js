@@ -59,6 +59,15 @@ export async function crearRonda(torneoId, { tipo_ronda, asignaciones }, usuario
     throw err;
   }
 
+  const enfrentamientosPendientes = await repo.contarEnfrentamientosPendientesDeTorneo(torneoId);
+  if (enfrentamientosPendientes > 0) {
+    const err = new Error(
+      'No se puede crear una nueva ronda mientras haya enfrentamientos sin finalizar en la ronda actual',
+    );
+    err.status = 400;
+    throw err;
+  }
+
   const inscripciones = await repo.obtenerInscripcionesConPuntos(torneoId);
 
   const minJugadores = torneo.formato === 'COMMANDER' ? 3 : 2;

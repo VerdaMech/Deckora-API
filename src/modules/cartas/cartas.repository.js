@@ -26,10 +26,13 @@ export function buscarPorNombre(q, limit = 20, formato = null) {
   ];
 
   if (formato) {
-    condicionesAnd.push(literal(`legalities->>'${formato.toLowerCase()}' = 'legal'`));
+    condicionesAnd.push(
+      literal(`(legalities IS NULL OR legalities->>'${formato.toLowerCase()}' IS NULL OR legalities->>'${formato.toLowerCase()}' NOT IN ('banned', 'not_legal'))`)
+    );
   } else {
     condicionesAnd.push(
       literal(`(
+        legalities IS NULL OR
         legalities->>'commander' = 'legal' OR
         legalities->>'standard' = 'legal' OR
         legalities->>'modern' = 'legal' OR
@@ -67,7 +70,9 @@ export function buscarPorNombreExacto(nombre, formato = null) {
   ];
 
   if (formato) {
-    condicionesAnd.push(literal(`legalities->>'${formato.toLowerCase()}' = 'legal'`));
+    condicionesAnd.push(
+      literal(`(legalities IS NULL OR legalities->>'${formato.toLowerCase()}' IS NULL OR legalities->>'${formato.toLowerCase()}' NOT IN ('banned', 'not_legal'))`)
+    );
   }
 
   return Carta.findOne({

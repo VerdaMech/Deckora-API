@@ -59,6 +59,15 @@ export async function eliminarCarta(req, res, next) {
   }
 }
 
+export async function eliminar(req, res, next) {
+  try {
+    await mazosService.eliminar(req.params.id, req.usuario.id);
+    res.status(204).send();
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function actualizar(req, res, next) {
   try {
     const mazo = await mazosService.actualizar(req.params.id, req.usuario.id, req.body);
@@ -70,7 +79,7 @@ export async function actualizar(req, res, next) {
 
 export async function importar(req, res, next) {
   try {
-    const resultado = await mazosService.importarLista(req.params.id, req.usuario.id, req.body.lista);
+    const resultado = await mazosService.importarLista(req.params.id, req.usuario.id, req.body.lista, req.body.comandante);
     res.json(resultado);
   } catch (err) {
     next(err);
