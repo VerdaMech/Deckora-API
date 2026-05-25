@@ -281,6 +281,21 @@ export async function autocompletar(mazoId, jugadorId) {
     }
   }
 
+  // Para Commander: marcar el comandante si está en el mazo y aún no hay ninguno marcado
+  if (mazo.formato === 'COMMANDER' && mazo.comandante) {
+    const mazoActualizado = await repo.buscarPorId(mazoId);
+    const yaHayComandante = (mazoActualizado.MazoCartas ?? []).some((mc) => mc.es_comandante);
+    if (!yaHayComandante) {
+      const nombreComandante = mazo.comandante.toLowerCase();
+      const mcComandante = (mazoActualizado.MazoCartas ?? []).find(
+        (mc) => mc.Carta?.nombre?.toLowerCase() === nombreComandante,
+      );
+      if (mcComandante) {
+        await repo.actualizarCarta(mazoId, mcComandante.carta_id, { es_comandante: true });
+      }
+    }
+  }
+
   return { agregadas, fallidas };
 }
 
