@@ -281,17 +281,31 @@ export async function autocompletar(mazoId, jugadorId) {
     }
   }
 
-  // Para Commander: marcar el comandante si está en el mazo y aún no hay ninguno marcado
-  if (mazo.formato === 'COMMANDER' && mazo.comandante) {
+  // Para Commander: marcar el comandante si aún no hay ninguno marcado
+  if (mazo.formato === 'COMMANDER') {
     const mazoActualizado = await repo.buscarPorId(mazoId);
-    const yaHayComandante = (mazoActualizado.MazoCartas ?? []).some((mc) => mc.es_comandante);
+    const cartasFinales = mazoActualizado.MazoCartas ?? [];
+    const yaHayComandante = cartasFinales.some((mc) => mc.es_comandante);
+
     if (!yaHayComandante) {
-      const nombreComandante = mazo.comandante.toLowerCase();
-      const mcComandante = (mazoActualizado.MazoCartas ?? []).find(
-        (mc) => mc.Carta?.nombre?.toLowerCase() === nombreComandante,
-      );
+      // 1. Intentar por nombre guardado en mazo.comandante
+      let mcComandante = mazo.comandante
+        ? cartasFinales.find(
+            (mc) => mc.Carta?.nombre?.toLowerCase() === mazo.comandante.toLowerCase(),
+          )
+        : null;
+
+      // 2. Si no, tomar cualquier criatura legendaria del mazo
+      if (!mcComandante) {
+        mcComandante = cartasFinales.find((mc) => {
+          const tipo = (mc.Carta?.tipo ?? '').toLowerCase();
+          return tipo.includes('legendary') && tipo.includes('creature');
+        });
+      }
+
       if (mcComandante) {
         await repo.actualizarCarta(mazoId, mcComandante.carta_id, { es_comandante: true });
+        await repo.actualizar(mazoId, { comandante: mcComandante.Carta.nombre });
       }
     }
   }
