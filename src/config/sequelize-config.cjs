@@ -1,5 +1,7 @@
 // Configuración de Sequelize CLI — CommonJS requerido por sequelize-cli
-require('dotenv').config();
+const env = process.env.NODE_ENV || 'development';
+const envFile = env === 'testing' ? '.env.test' : `.env.${env}`;
+require('dotenv').config({ path: envFile });
 
 const sslOptions = {
   ssl: {
@@ -8,15 +10,14 @@ const sslOptions = {
   },
 };
 
+const base = {
+  url: process.env.DATABASE_URL,
+  dialect: 'postgres',
+  dialectOptions: sslOptions,
+};
+
 module.exports = {
-  development: {
-    url: process.env.DATABASE_URL,
-    dialect: 'postgres',
-    dialectOptions: sslOptions,
-  },
-  production: {
-    url: process.env.DATABASE_URL,
-    dialect: 'postgres',
-    dialectOptions: sslOptions,
-  },
+  development: base,
+  testing: base,
+  production: base,
 };
