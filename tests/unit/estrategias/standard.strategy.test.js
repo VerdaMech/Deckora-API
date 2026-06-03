@@ -10,7 +10,7 @@ import {
   STANDARD_EXACTAMENTE_4_COPIAS,
 } from '../../fixtures/mazos.fixture.js';
 
-describe('standard.strategy — validar()', () => {
+describe('standard.strategy — validar() @regression', () => {
   it('TC-STD-001: mazo de 60 cartas con máximo 4 copias es válido', () => {
     const resultado = validar(STANDARD_60_VALIDO);
     expect(resultado.valido).toBe(true);

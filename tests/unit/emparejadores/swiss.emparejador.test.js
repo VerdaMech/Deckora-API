@@ -8,7 +8,7 @@ function inscripciones(cantidad, puntos = []) {
   }));
 }
 
-describe('swiss.emparejador — emparejar()', () => {
+describe('swiss.emparejador — emparejar() @regression', () => {
   // ─── Formato 1v1 (Standard / Modern / Pioneer / Legacy) ─────────────────
 
   it('TC-SWI-001: 2 jugadores genera 1 mesa de 2', () => {

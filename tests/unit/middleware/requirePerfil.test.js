@@ -9,7 +9,7 @@ function makeResMock() {
   return res;
 }
 
-describe('requirePerfil middleware', () => {
+describe('requirePerfil middleware @regression', () => {
   it('TC-ROL-001: rol correcto llama a next()', () => {
     const req = { usuario: { rol: 'organizador' } };
     const res = makeResMock();

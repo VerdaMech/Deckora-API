@@ -20,7 +20,7 @@ const { default: auth } = await import('../../../src/middleware/auth.js');
 const { default: supabase } = await import('../../../src/config/supabase.js');
 const { Usuario } = await import('../../../src/models/index.js');
 
-describe('auth middleware', () => {
+describe('auth middleware @regression', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });

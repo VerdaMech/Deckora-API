@@ -61,7 +61,7 @@ beforeEach(() => {
 // Ciclo de vida del torneo — cambiarEstado()
 // ═══════════════════════════════════════════════════════════════════════════
 
-describe('torneos.service — cambiarEstado()', () => {
+describe('torneos.service — cambiarEstado() @regression', () => {
   it('TC-TOR-001: organizador inicia torneo con jugadores suficientes', async () => {
     repo.buscarPorId.mockResolvedValue(crearTorneoMock({ formato: 'STANDARD' }));
     repo.contarInscripcionesConfirmadas.mockResolvedValue(2);
@@ -153,7 +153,7 @@ describe('torneos.service — cambiarEstado()', () => {
 // Inscripciones — inscribir()
 // ═══════════════════════════════════════════════════════════════════════════
 
-describe('torneos.service — inscribir()', () => {
+describe('torneos.service — inscribir() @regression', () => {
   function mazoCommanderValido(overrides = {}) {
     return {
       id: 'mazo-1',

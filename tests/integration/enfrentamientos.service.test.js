@@ -49,7 +49,7 @@ beforeEach(() => {
   Torneo.findByPk.mockResolvedValue({ id: 'torneo-1', organizador_id: ORGANIZADOR_TEST.id });
 });
 
-describe('enfrentamientos.service — registrarResultado()', () => {
+describe('enfrentamientos.service — registrarResultado() @regression', () => {
   it('TC-ENF-001: ganador y derrota reciben 3 y 0 puntos', async () => {
     repo.buscarPorId.mockResolvedValue(enfrentamientoMock());
 

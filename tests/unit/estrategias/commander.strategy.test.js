@@ -13,7 +13,7 @@ import {
   COMMANDER_MULTIPLES_ERRORES,
 } from '../../fixtures/mazos.fixture.js';
 
-describe('commander.strategy — validar()', () => {
+describe('commander.strategy — validar() @regression', () => {
   it('TC-CMD-001: mazo válido de 100 cartas es aprobado', () => {
     const resultado = validar(COMMANDER_VALIDO);
     expect(resultado.valido).toBe(true);
