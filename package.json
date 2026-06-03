@@ -14,6 +14,10 @@
     "test:api": "vitest run tests/api",
     "test:smoke": "vitest run tests/smoke",
     "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test --config e2e/playwright.config.js",
+    "test:e2e:ui": "playwright test --config e2e/playwright.config.js --ui",
+    "test:e2e:smoke": "playwright test --config e2e/playwright.config.js e2e/specs/smoke",
+    "test:e2e:report": "playwright show-report e2e/playwright-report",
     "db:migrate": "sequelize-cli db:migrate",
     "db:migrate:undo": "sequelize-cli db:migrate:undo",
     "db:seed": "sequelize-cli db:seed:all",
@@ -48,6 +52,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "@vitest/coverage-v8": "^4.1.8",
     "cross-env": "^7.0.3",
     "eslint": "^10.2.1",
