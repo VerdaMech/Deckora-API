@@ -4,6 +4,7 @@ const FORMATOS = ['COMMANDER', 'STANDARD', 'MODERN', 'PIONEER', 'LEGACY'];
 
 export const crearTorneoSchema = z.object({
   nombre: z.string().min(3),
+  // eslint-disable-next-line security/detect-unsafe-regex -- revisado: regex lineal y acotado, sin backtracking catastrófico (ReDoS)
   fecha: z.string().datetime({ offset: true }).or(z.string().regex(/^\d{4}-\d{2}-\d{2}(T.*)?$/)),
   formato: z.enum(FORMATOS),
   descripcion: z.string().max(2000).nullish(),
@@ -18,6 +19,7 @@ export const crearTorneoSchema = z.object({
 
 export const actualizarTorneoSchema = z.object({
   nombre: z.string().min(3).optional(),
+  // eslint-disable-next-line security/detect-unsafe-regex -- revisado: regex lineal y acotado, sin backtracking catastrófico (ReDoS)
   fecha: z.string().datetime({ offset: true }).or(z.string().regex(/^\d{4}-\d{2}-\d{2}(T.*)?$/)).optional(),
   formato: z.enum(FORMATOS).optional(),
   descripcion: z.string().max(2000).nullish(),
