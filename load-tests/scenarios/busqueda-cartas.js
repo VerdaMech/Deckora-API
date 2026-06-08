@@ -34,7 +34,7 @@ export default function () {
   check(res, {
     'status es 200': (r) => r.status === 200,
     'responde en menos de 800ms': (r) => r.timings.duration < 800,
-    'body es array': (r) => Array.isArray(r.json()),
+    'body tiene data array': (r) => Array.isArray(r.json().data),
   });
 
   // Simular búsqueda por término en la siguiente petición
