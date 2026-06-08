@@ -6,7 +6,7 @@ export const TORNEO_ID = __ENV.TORNEO_ID || '';
 export const MAZO_ID = __ENV.MAZO_ID || '';
 
 export const CREDENCIALES_TEST = {
-  email: __ENV.TEST_EMAIL || 'test@test.local',
+  correo: __ENV.TEST_EMAIL || 'test@test.local',
   password: __ENV.TEST_PASSWORD || 'test1234',
 };
 
