@@ -10,6 +10,18 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'html', 'json'],
       exclude: ['tests/**', 'scripts/**', 'node_modules/**'],
+      include: [
+        'src/middleware/auth.js',
+        'src/modules/estrategias/**',
+        'src/modules/rondas/emparejadores/**',
+        'src/modules/auth/auth.service.js',
+      ],
+      thresholds: {
+        statements: 90,
+        branches: 80,
+        functions: 85,
+        lines: 90,
+      },
     },
     setupFiles: ['./tests/helpers/setup.js'],
   },
