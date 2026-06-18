@@ -122,7 +122,7 @@ describe('torneos API — GET /api/torneos/:id', () => {
 // ═══════════════════════════════════════════════════════════════════════════
 
 describe('torneos API — POST /api/torneos', () => {
-  it('TC-API-020: sin token devuelve 401', async () => {
+  it('TC-API-025: sin token devuelve 401', async () => {
     const res = await request(app).post('/api/torneos').send(BODY_TORNEO_VALIDO);
 
     expect(res.status).toBe(401);
