@@ -3,9 +3,26 @@ import supabase from '../../config/supabase.js';
 import { Usuario, Jugador, Organizador, Tienda, Estadistica } from '../../models/index.js';
 
 export async function signup({ nombre_usuario, correo, password, rol, nombre_tienda }) {
-  const { data, error } = await supabase.auth.signUp({ email: correo, password });
+  let data, error;
+  try {
+    ({ data, error } = await supabase.auth.signUp({ email: correo, password }));
+  } catch {
+    // El servicio de autenticación lanzó (red caída, servicio no disponible): se
+    // devuelve un error controlado 503 en lugar de un 500 genérico con stack trace.
+    const err = new Error(
+      'El servicio de autenticación no está disponible. Intenta nuevamente en unos momentos.',
+    );
+    err.status = 503;
+    throw err;
+  }
 
   if (error) {
+    // Rate limit de Supabase: se propaga como 429 con un mensaje claro en vez de un 400 ambiguo.
+    if (error.status === 429 || /rate limit/i.test(error.message ?? '')) {
+      const err = new Error('Se alcanzó el límite de registros. Intenta en unos minutos.');
+      err.status = 429;
+      throw err;
+    }
     const err = new Error(error.message);
     err.status = 400;
     throw err;
