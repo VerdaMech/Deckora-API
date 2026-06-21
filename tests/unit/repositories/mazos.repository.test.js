@@ -137,4 +137,48 @@ describe('mazos.repository', () => {
     expect(Mazo.destroy).toHaveBeenCalledWith({ where: { id: 7 } });
     expect(result).toBe(1);
   });
+
+  // --- listarPublicosPorJugador ---
+  it('TC-REPO-MAZ-010: listarPublicosPorJugador filtra por usuario_id y publico true', async () => {
+    const fakes = [{ id: 1, nombre: 'Mazo Publico', publico: true }];
+    Mazo.findAll.mockResolvedValue(fakes);
+
+    const result = await repo.listarPublicosPorJugador(10);
+
+    expect(Mazo.findAll).toHaveBeenCalledTimes(1);
+    const call = Mazo.findAll.mock.calls[0][0];
+    expect(call.where).toEqual({ usuario_id: 10, publico: true });
+    expect(call.attributes).toEqual(['id', 'nombre', 'formato', 'descripcion', 'slug', 'fecha_creacion']);
+    expect(call.order).toEqual([['fecha_creacion', 'DESC']]);
+    expect(result).toEqual(fakes);
+  });
+
+  it('TC-REPO-MAZ-011: listarPublicosPorJugador retorna array vacio si no hay mazos publicos', async () => {
+    Mazo.findAll.mockResolvedValue([]);
+
+    const result = await repo.listarPublicosPorJugador(99);
+
+    expect(result).toEqual([]);
+  });
+
+  // --- buscarRecomendaciones ---
+  it('TC-REPO-MAZ-012: buscarRecomendaciones ejecuta query SQL con parametros correctos', async () => {
+    const { default: sequelize } = await import('../../../src/config/db.js');
+    const fakes = [{ id: 1, nombre: 'Carta Recomendada' }, { id: 2, nombre: 'Otra Carta' }];
+    sequelize.query.mockResolvedValue(fakes);
+
+    const embedding = [0.1, 0.2, 0.3];
+    const excluirIds = [5, 10];
+    const result = await repo.buscarRecomendaciones(embedding, excluirIds, 'standard', 5);
+
+    expect(sequelize.query).toHaveBeenCalledTimes(1);
+    const [sql, options] = sequelize.query.mock.calls[0];
+    expect(sql).toContain('SELECT');
+    expect(sql).toContain('FROM cartas');
+    expect(sql).toContain('ORDER BY embedding');
+    expect(options.replacements.embedding).toBe('[0.1,0.2,0.3]');
+    expect(options.replacements.limit).toBe(5);
+    expect(options.replacements.excluirIds).toEqual([5, 10]);
+    expect(result).toEqual(fakes);
+  });
 });

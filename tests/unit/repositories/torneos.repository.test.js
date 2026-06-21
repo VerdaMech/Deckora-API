@@ -243,4 +243,120 @@ describe('torneos.repository', () => {
     });
     expect(result).toEqual(fake);
   });
+
+  // --- listarInscripciones ---
+  it('TC-REPO-TOR-018: listarInscripciones llama a Inscripcion.findAll con torneo_id e includes', async () => {
+    const fakes = [{ id: 1, torneo_id: 5, usuario_id: 2 }];
+    Inscripcion.findAll.mockResolvedValue(fakes);
+
+    const result = await repo.listarInscripciones(5);
+
+    expect(Inscripcion.findAll).toHaveBeenCalledTimes(1);
+    const call = Inscripcion.findAll.mock.calls[0][0];
+    expect(call.where).toEqual({ torneo_id: 5 });
+    expect(call.include).toBeDefined();
+    expect(result).toEqual(fakes);
+  });
+
+  // --- buscarInscripcionPorId ---
+  it('TC-REPO-TOR-019: buscarInscripcionPorId llama a Inscripcion.findByPk', async () => {
+    const fake = { id: 10, torneo_id: 1, usuario_id: 3 };
+    Inscripcion.findByPk.mockResolvedValue(fake);
+
+    const result = await repo.buscarInscripcionPorId(10);
+
+    expect(Inscripcion.findByPk).toHaveBeenCalledWith(10);
+    expect(result).toEqual(fake);
+  });
+
+  it('TC-REPO-TOR-020: buscarInscripcionPorId retorna null si no existe', async () => {
+    Inscripcion.findByPk.mockResolvedValue(null);
+
+    const result = await repo.buscarInscripcionPorId(999);
+
+    expect(result).toBeNull();
+  });
+
+  // --- eliminarInscripcion ---
+  it('TC-REPO-TOR-021: eliminarInscripcion llama a Inscripcion.destroy con where id', async () => {
+    Inscripcion.destroy.mockResolvedValue(1);
+
+    const result = await repo.eliminarInscripcion(10);
+
+    expect(Inscripcion.destroy).toHaveBeenCalledWith({ where: { id: 10 } });
+    expect(result).toBe(1);
+  });
+
+  // --- listarInscripcionesPendientes ---
+  it('TC-REPO-TOR-022: listarInscripcionesPendientes filtra por confirmado false e incluye modelos', async () => {
+    const fakes = [{ id: 2, confirmado: false }];
+    Inscripcion.findAll.mockResolvedValue(fakes);
+
+    const result = await repo.listarInscripcionesPendientes(3);
+
+    expect(Inscripcion.findAll).toHaveBeenCalledTimes(1);
+    const call = Inscripcion.findAll.mock.calls[0][0];
+    expect(call.where).toEqual({ torneo_id: 3, confirmado: false });
+    expect(call.include).toBeDefined();
+    expect(call.include.length).toBeGreaterThanOrEqual(2);
+    expect(result).toEqual(fakes);
+  });
+
+  // --- aprobarInscripcion ---
+  it('TC-REPO-TOR-023: aprobarInscripcion actualiza confirmado a true y retorna inscripcion', async () => {
+    Inscripcion.update.mockResolvedValue([1]);
+    const fake = { id: 7, confirmado: true };
+    Inscripcion.findByPk.mockResolvedValue(fake);
+
+    const result = await repo.aprobarInscripcion(7);
+
+    expect(Inscripcion.update).toHaveBeenCalledWith(
+      { confirmado: true },
+      { where: { id: 7 } },
+    );
+    expect(Inscripcion.findByPk).toHaveBeenCalledWith(7);
+    expect(result).toEqual(fake);
+  });
+
+  // --- obtenerTablaPosiciones ---
+  it('TC-REPO-TOR-024: obtenerTablaPosiciones llama a Inscripcion.findAll con includes complejos', async () => {
+    const fakes = [{ id: 1, usuario_id: 2 }];
+    Inscripcion.findAll.mockResolvedValue(fakes);
+
+    const result = await repo.obtenerTablaPosiciones(4);
+
+    expect(Inscripcion.findAll).toHaveBeenCalledTimes(1);
+    const call = Inscripcion.findAll.mock.calls[0][0];
+    expect(call.where).toEqual({ torneo_id: 4 });
+    expect(call.include).toBeDefined();
+    expect(result).toEqual(fakes);
+  });
+
+  // --- obtenerJugadoresInscritos ---
+  it('TC-REPO-TOR-025: obtenerJugadoresInscritos retorna array de usuario_ids confirmados', async () => {
+    const fakes = [{ usuario_id: 10 }, { usuario_id: 20 }, { usuario_id: 30 }];
+    Inscripcion.findAll.mockResolvedValue(fakes);
+
+    const result = await repo.obtenerJugadoresInscritos(2);
+
+    expect(Inscripcion.findAll).toHaveBeenCalledTimes(1);
+    const call = Inscripcion.findAll.mock.calls[0][0];
+    expect(call.where).toEqual({ torneo_id: 2, confirmado: true });
+    expect(call.attributes).toEqual(['usuario_id']);
+    expect(result).toEqual([10, 20, 30]);
+  });
+
+  // --- obtenerSnapshotInscripcion ---
+  it('TC-REPO-TOR-026: obtenerSnapshotInscripcion llama a SnapshotMazoInscripcion.findAll con include Carta', async () => {
+    const fakes = [{ carta_id: 1, cantidad: 4 }, { carta_id: 2, cantidad: 2 }];
+    SnapshotMazoInscripcion.findAll.mockResolvedValue(fakes);
+
+    const result = await repo.obtenerSnapshotInscripcion(15);
+
+    expect(SnapshotMazoInscripcion.findAll).toHaveBeenCalledTimes(1);
+    const call = SnapshotMazoInscripcion.findAll.mock.calls[0][0];
+    expect(call.where).toEqual({ inscripcion_id: 15 });
+    expect(call.include).toBeDefined();
+    expect(result).toEqual(fakes);
+  });
 });
