@@ -184,4 +184,53 @@ describe('auth API — GET /api/auth/me', () => {
 
     expect(res.status).toBe(200);
   });
+
+  it('TC-API-AUTH-003: jugador autenticado recibe datos con perfil de jugador', async () => {
+    const jugadorConPerfil = {
+      ...JUGADOR_TEST,
+      Jugador: { id: 'jug-profile-1', nivel: 5 },
+      toJSON() {
+        return { ...JUGADOR_TEST, Jugador: this.Jugador };
+      },
+    };
+
+    configurarAuthMock(supabase, Usuario, JUGADOR_TEST);
+    // Segunda findByPk: el controller hace Usuario.findByPk(id, { include })
+    Usuario.findByPk
+      .mockResolvedValueOnce(JUGADOR_TEST)          // middleware auth
+      .mockResolvedValueOnce(jugadorConPerfil);      // controller me()
+
+    const res = await request(app)
+      .get('/api/auth/me')
+      .set('Authorization', TOKEN_JUGADOR);
+
+    expect(res.status).toBe(200);
+    expect(res.body.perfil).toEqual({ id: 'jug-profile-1', nivel: 5 });
+    expect(res.body.Jugador).toBeUndefined();
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// POST /api/auth/logout
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('auth API — POST /api/auth/logout', () => {
+  it('TC-API-AUTH-004: sin token devuelve 401', async () => {
+    const res = await request(app).post('/api/auth/logout');
+
+    expect(res.status).toBe(401);
+    expect(res.body.error).toMatch(/Token no provisto/);
+  });
+
+  it('TC-API-AUTH-005: usuario autenticado recibe 204 al cerrar sesion', async () => {
+    configurarAuthMock(supabase, Usuario, JUGADOR_TEST);
+    authService.logout.mockResolvedValue(undefined);
+
+    const res = await request(app)
+      .post('/api/auth/logout')
+      .set('Authorization', TOKEN_JUGADOR);
+
+    expect(res.status).toBe(204);
+    expect(authService.logout).toHaveBeenCalledOnce();
+  });
 });

@@ -230,3 +230,60 @@ describe('enfrentamientos.service — registrarResultado() @regression', () => {
     expect(transaccion.commit).toHaveBeenCalledOnce();
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════════════
+// obtenerEnfrentamiento()
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('enfrentamientos.service — obtenerEnfrentamiento()', () => {
+  it('TC-ENF-010: devuelve el enfrentamiento cuando existe', async () => {
+    const datos = enfrentamientoMock();
+    repo.buscarPorId.mockResolvedValue(datos);
+
+    const resultado = await service.obtenerEnfrentamiento('enf-1');
+
+    expect(repo.buscarPorId).toHaveBeenCalledWith('enf-1');
+    expect(resultado).toEqual(datos);
+  });
+
+  it('TC-ENF-011: lanza 404 cuando el enfrentamiento no existe', async () => {
+    repo.buscarPorId.mockResolvedValue(null);
+
+    await expect(service.obtenerEnfrentamiento('enf-inexistente'))
+      .rejects.toMatchObject({ status: 404, message: expect.stringMatching(/no encontrado/) });
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// cambiarEstado()
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('enfrentamientos.service — cambiarEstado()', () => {
+  it('TC-ENF-012: el organizador puede cambiar el estado del enfrentamiento', async () => {
+    const datos = enfrentamientoMock();
+    const datosActualizado = enfrentamientoMock({ estado: 'en_curso' });
+    repo.buscarPorId
+      .mockResolvedValueOnce(datos)          // primera llamada: validacion
+      .mockResolvedValueOnce(datosActualizado); // segunda llamada: retorno final
+
+    const resultado = await service.cambiarEstado('enf-1', { estado: 'en_curso' }, ORGANIZADOR_TEST.id);
+
+    expect(repo.actualizarEstado).toHaveBeenCalledWith('enf-1', 'en_curso', null);
+    expect(resultado).toEqual(datosActualizado);
+  });
+
+  it('TC-ENF-013: lanza 404 si el enfrentamiento no existe', async () => {
+    repo.buscarPorId.mockResolvedValue(null);
+
+    await expect(service.cambiarEstado('enf-inexistente', { estado: 'en_curso' }, ORGANIZADOR_TEST.id))
+      .rejects.toMatchObject({ status: 404, message: expect.stringMatching(/no encontrado/) });
+  });
+
+  it('TC-ENF-014: lanza 403 si el usuario no es el organizador del torneo', async () => {
+    repo.buscarPorId.mockResolvedValue(enfrentamientoMock());
+    Torneo.findByPk.mockResolvedValue({ id: 'torneo-1', organizador_id: 'otro-org' });
+
+    await expect(service.cambiarEstado('enf-1', { estado: 'en_curso' }, ORGANIZADOR_TEST.id))
+      .rejects.toMatchObject({ status: 403, message: expect.stringMatching(/No tienes permiso/) });
+  });
+});
