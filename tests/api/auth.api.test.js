@@ -234,3 +234,50 @@ describe('auth API — POST /api/auth/logout', () => {
     expect(authService.logout).toHaveBeenCalledOnce();
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Error paths — cubrir catch(next) de cada controller
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('auth API — error paths de controllers', () => {
+  it('TC-API-AUTH-006: signup error del service propaga al errorHandler', async () => {
+    authService.signup.mockRejectedValue(Object.assign(new Error('Email duplicado'), { status: 409 }));
+    const res = await request(app)
+      .post('/api/auth/signup')
+      .send({ nombre_usuario: 'test', correo: 'a@b.com', password: '12345678', rol: 'jugador' });
+    expect(res.status).toBe(409);
+  });
+
+  it('TC-API-AUTH-007: login error del service propaga al errorHandler', async () => {
+    authService.login.mockRejectedValue(Object.assign(new Error('Credenciales inválidas'), { status: 401 }));
+    const res = await request(app)
+      .post('/api/auth/login')
+      .send({ correo: 'a@b.com', password: '12345678' });
+    expect(res.status).toBe(401);
+  });
+
+  it('TC-API-AUTH-008: me con usuario no encontrado devuelve 404', async () => {
+    configurarAuthMock(supabase, Usuario, JUGADOR_TEST);
+    Usuario.findByPk
+      .mockResolvedValueOnce(JUGADOR_TEST)
+      .mockResolvedValueOnce(null);
+    const res = await request(app).get('/api/auth/me').set('Authorization', TOKEN_JUGADOR);
+    expect(res.status).toBe(404);
+  });
+
+  it('TC-API-AUTH-009: me error interno propaga 500', async () => {
+    configurarAuthMock(supabase, Usuario, JUGADOR_TEST);
+    Usuario.findByPk
+      .mockResolvedValueOnce(JUGADOR_TEST)
+      .mockRejectedValueOnce(new Error('DB error'));
+    const res = await request(app).get('/api/auth/me').set('Authorization', TOKEN_JUGADOR);
+    expect(res.status).toBe(500);
+  });
+
+  it('TC-API-AUTH-010: logout error propaga al errorHandler', async () => {
+    configurarAuthMock(supabase, Usuario, JUGADOR_TEST);
+    authService.logout.mockRejectedValue(new Error('Supabase error'));
+    const res = await request(app).post('/api/auth/logout').set('Authorization', TOKEN_JUGADOR);
+    expect(res.status).toBe(500);
+  });
+});

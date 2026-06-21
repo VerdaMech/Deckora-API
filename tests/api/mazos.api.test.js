@@ -297,3 +297,65 @@ describe('mazos API — GET /api/mazos/:id/recomendaciones', () => {
     expect(mazosService.recomendarCartas).toHaveBeenCalledWith('mazo-1', JUGADOR_TEST.id);
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Error paths — cubrir catch(next) de cada controller
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('mazos API — error paths de controllers', () => {
+  beforeEach(() => configurarAuthMock(supabase, Usuario, JUGADOR_TEST));
+
+  it('TC-API-060: listar error propaga al errorHandler', async () => {
+    mazosService.listar.mockRejectedValue(crearErrorConStatus('error', 500));
+    const res = await request(app).get('/api/mazos').set('Authorization', TOKEN_JUGADOR);
+    expect(res.status).toBe(500);
+  });
+
+  it('TC-API-061: obtenerPorId error propaga 404', async () => {
+    mazosService.obtenerPorId.mockRejectedValue(crearErrorConStatus('No encontrado', 404));
+    const res = await request(app).get('/api/mazos/x').set('Authorization', TOKEN_JUGADOR);
+    expect(res.status).toBe(404);
+  });
+
+  it('TC-API-062: agregarCarta error propaga', async () => {
+    mazosService.agregarCarta.mockRejectedValue(crearErrorConStatus('error', 400));
+    const res = await request(app).post('/api/mazos/x/cartas').set('Authorization', TOKEN_JUGADOR).send({ scryfall_id: 'a', cantidad: 1 });
+    expect(res.status).toBe(400);
+  });
+
+  it('TC-API-063: actualizarCarta error propaga', async () => {
+    mazosService.actualizarCarta.mockRejectedValue(crearErrorConStatus('error', 400));
+    const res = await request(app).patch('/api/mazos/x/cartas/c1').set('Authorization', TOKEN_JUGADOR).send({ cantidad: 2 });
+    expect(res.status).toBe(400);
+  });
+
+  it('TC-API-064: eliminarCarta error propaga', async () => {
+    mazosService.eliminarCarta.mockRejectedValue(crearErrorConStatus('error', 404));
+    const res = await request(app).delete('/api/mazos/x/cartas/c1').set('Authorization', TOKEN_JUGADOR);
+    expect(res.status).toBe(404);
+  });
+
+  it('TC-API-065: importar error propaga', async () => {
+    mazosService.importarLista.mockRejectedValue(crearErrorConStatus('error', 400));
+    const res = await request(app).post('/api/mazos/x/importar').set('Authorization', TOKEN_JUGADOR).send({ lista: 'x' });
+    expect(res.status).toBe(400);
+  });
+
+  it('TC-API-066: validar error propaga', async () => {
+    mazosService.validar.mockRejectedValue(crearErrorConStatus('error', 404));
+    const res = await request(app).post('/api/mazos/x/validar').set('Authorization', TOKEN_JUGADOR);
+    expect(res.status).toBe(404);
+  });
+
+  it('TC-API-067: autocompletar error propaga', async () => {
+    mazosService.autocompletar.mockRejectedValue(crearErrorConStatus('error', 422));
+    const res = await request(app).post('/api/mazos/x/autocompletar').set('Authorization', TOKEN_JUGADOR);
+    expect(res.status).toBe(422);
+  });
+
+  it('TC-API-068: recomendarCartas error propaga', async () => {
+    mazosService.recomendarCartas.mockRejectedValue(crearErrorConStatus('error', 422));
+    const res = await request(app).get('/api/mazos/x/recomendaciones').set('Authorization', TOKEN_JUGADOR);
+    expect(res.status).toBe(422);
+  });
+});
