@@ -182,3 +182,118 @@ describe('mazos API — DELETE /api/mazos/:id', () => {
     expect(res.status).toBe(204);
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════════════
+// POST /api/mazos/:id/importar
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('mazos API — POST /api/mazos/:id/importar', () => {
+  const bodyImportar = { lista: '4 Llanowar Elves\n2 Giant Growth' };
+
+  it('TC-API-050: sin token devuelve 401', async () => {
+    const res = await request(app).post('/api/mazos/mazo-1/importar').send(bodyImportar);
+
+    expect(res.status).toBe(401);
+    expect(mazosService.importarLista).not.toHaveBeenCalled();
+  });
+
+  it('TC-API-051: jugador importa lista devuelve 200', async () => {
+    configurarAuthMock(supabase, Usuario, JUGADOR_TEST);
+    mazosService.importarLista.mockResolvedValue({ importadas: 6, errores: [] });
+
+    const res = await request(app)
+      .post('/api/mazos/mazo-1/importar')
+      .set('Authorization', TOKEN_JUGADOR)
+      .send(bodyImportar);
+
+    expect(res.status).toBe(200);
+    expect(res.body.importadas).toBe(6);
+    expect(mazosService.importarLista).toHaveBeenCalledWith(
+      'mazo-1',
+      JUGADOR_TEST.id,
+      bodyImportar.lista,
+      undefined,
+    );
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// POST /api/mazos/:id/validar
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('mazos API — POST /api/mazos/:id/validar', () => {
+  it('TC-API-052: sin token devuelve 401', async () => {
+    const res = await request(app).post('/api/mazos/mazo-1/validar');
+
+    expect(res.status).toBe(401);
+    expect(mazosService.validar).not.toHaveBeenCalled();
+  });
+
+  it('TC-API-053: jugador valida mazo devuelve 200', async () => {
+    configurarAuthMock(supabase, Usuario, JUGADOR_TEST);
+    mazosService.validar.mockResolvedValue({ valido: true, errores: [] });
+
+    const res = await request(app)
+      .post('/api/mazos/mazo-1/validar')
+      .set('Authorization', TOKEN_JUGADOR);
+
+    expect(res.status).toBe(200);
+    expect(res.body.valido).toBe(true);
+    expect(mazosService.validar).toHaveBeenCalledWith('mazo-1', JUGADOR_TEST.id);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// POST /api/mazos/:id/autocompletar
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('mazos API — POST /api/mazos/:id/autocompletar', () => {
+  it('TC-API-054: sin token devuelve 401', async () => {
+    const res = await request(app).post('/api/mazos/mazo-1/autocompletar');
+
+    expect(res.status).toBe(401);
+    expect(mazosService.autocompletar).not.toHaveBeenCalled();
+  });
+
+  it('TC-API-055: jugador autocompleta mazo devuelve 200', async () => {
+    configurarAuthMock(supabase, Usuario, JUGADOR_TEST);
+    mazosService.autocompletar.mockResolvedValue({ agregadas: 5, cartas: [] });
+
+    const res = await request(app)
+      .post('/api/mazos/mazo-1/autocompletar')
+      .set('Authorization', TOKEN_JUGADOR);
+
+    expect(res.status).toBe(200);
+    expect(res.body.agregadas).toBe(5);
+    expect(mazosService.autocompletar).toHaveBeenCalledWith('mazo-1', JUGADOR_TEST.id);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// GET /api/mazos/:id/recomendaciones
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('mazos API — GET /api/mazos/:id/recomendaciones', () => {
+  it('TC-API-056: sin token devuelve 401', async () => {
+    const res = await request(app).get('/api/mazos/mazo-1/recomendaciones');
+
+    expect(res.status).toBe(401);
+    expect(mazosService.recomendarCartas).not.toHaveBeenCalled();
+  });
+
+  it('TC-API-057: jugador obtiene recomendaciones devuelve 200', async () => {
+    configurarAuthMock(supabase, Usuario, JUGADOR_TEST);
+    mazosService.recomendarCartas.mockResolvedValue([
+      { id: 'carta-1', nombre: 'Lightning Bolt' },
+    ]);
+
+    const res = await request(app)
+      .get('/api/mazos/mazo-1/recomendaciones')
+      .set('Authorization', TOKEN_JUGADOR);
+
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+    expect(res.body[0].nombre).toBe('Lightning Bolt');
+    expect(mazosService.recomendarCartas).toHaveBeenCalledWith('mazo-1', JUGADOR_TEST.id);
+  });
+});

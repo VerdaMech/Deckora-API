@@ -203,3 +203,239 @@ describe('torneos API — PATCH /api/torneos/:id/estado', () => {
     );
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════════════
+// GET /api/torneos/:id/inscripciones
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('torneos API — GET /api/torneos/:id/inscripciones', () => {
+  it('TC-API-030: lista inscripciones sin autenticación devuelve 200', async () => {
+    torneosService.listarInscripciones.mockResolvedValue([
+      { id: 'insc-1', jugador_id: 'j1' },
+    ]);
+
+    const res = await request(app).get('/api/torneos/torneo-1/inscripciones');
+
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+    expect(torneosService.listarInscripciones).toHaveBeenCalledWith('torneo-1');
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// GET /api/torneos/:id/tabla-posiciones
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('torneos API — GET /api/torneos/:id/tabla-posiciones', () => {
+  it('TC-API-031: tabla de posiciones sin autenticación devuelve 200', async () => {
+    torneosService.obtenerTablaPosiciones.mockResolvedValue([
+      { posicion: 1, jugador: 'j1', puntos: 9 },
+    ]);
+
+    const res = await request(app).get('/api/torneos/torneo-1/tabla-posiciones');
+
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+    expect(torneosService.obtenerTablaPosiciones).toHaveBeenCalledWith('torneo-1');
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// GET /api/torneos/mis-torneos
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('torneos API — GET /api/torneos/mis-torneos', () => {
+  it('TC-API-032: sin token devuelve 401', async () => {
+    const res = await request(app).get('/api/torneos/mis-torneos');
+
+    expect(res.status).toBe(401);
+    expect(torneosService.misTorneos).not.toHaveBeenCalled();
+  });
+
+  it('TC-API-033: organizador autenticado devuelve 200', async () => {
+    configurarAuthMock(supabase, Usuario, ORGANIZADOR_TEST);
+    torneosService.misTorneos.mockResolvedValue([{ id: 'torneo-1', nombre: 'Mi Torneo' }]);
+
+    const res = await request(app)
+      .get('/api/torneos/mis-torneos')
+      .set('Authorization', TOKEN_ORGANIZADOR);
+
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+    expect(torneosService.misTorneos).toHaveBeenCalledWith(ORGANIZADOR_TEST.id);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DELETE /api/torneos/:id/inscripciones/:inscripcionId
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('torneos API — DELETE /api/torneos/:id/inscripciones/:inscripcionId', () => {
+  it('TC-API-034: sin token devuelve 401', async () => {
+    const res = await request(app).delete('/api/torneos/torneo-1/inscripciones/insc-1');
+
+    expect(res.status).toBe(401);
+    expect(torneosService.cancelarInscripcion).not.toHaveBeenCalled();
+  });
+
+  it('TC-API-035: jugador autenticado cancela inscripción devuelve 204', async () => {
+    configurarAuthMock(supabase, Usuario, JUGADOR_TEST);
+    torneosService.cancelarInscripcion.mockResolvedValue(undefined);
+
+    const res = await request(app)
+      .delete('/api/torneos/torneo-1/inscripciones/insc-1')
+      .set('Authorization', TOKEN_JUGADOR);
+
+    expect(res.status).toBe(204);
+    expect(torneosService.cancelarInscripcion).toHaveBeenCalledWith(
+      'torneo-1',
+      'insc-1',
+      JUGADOR_TEST.id,
+      JUGADOR_TEST.rol,
+    );
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// GET /api/torneos/:id/inscripciones/pendientes
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('torneos API — GET /api/torneos/:id/inscripciones/pendientes', () => {
+  it('TC-API-036: sin token devuelve 401', async () => {
+    const res = await request(app).get('/api/torneos/torneo-1/inscripciones/pendientes');
+
+    expect(res.status).toBe(401);
+    expect(torneosService.listarPendientes).not.toHaveBeenCalled();
+  });
+
+  it('TC-API-037: organizador autenticado devuelve 200', async () => {
+    configurarAuthMock(supabase, Usuario, ORGANIZADOR_TEST);
+    torneosService.listarPendientes.mockResolvedValue([{ id: 'insc-2', estado: 'pendiente' }]);
+
+    const res = await request(app)
+      .get('/api/torneos/torneo-1/inscripciones/pendientes')
+      .set('Authorization', TOKEN_ORGANIZADOR);
+
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+    expect(torneosService.listarPendientes).toHaveBeenCalledWith('torneo-1', ORGANIZADOR_TEST.id);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PATCH /api/torneos/:id/inscripciones/:inscripcionId/aprobar
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('torneos API — PATCH /api/torneos/:id/inscripciones/:inscripcionId/aprobar', () => {
+  it('TC-API-038: sin token devuelve 401', async () => {
+    const res = await request(app).patch('/api/torneos/torneo-1/inscripciones/insc-1/aprobar');
+
+    expect(res.status).toBe(401);
+    expect(torneosService.aprobarInscripcion).not.toHaveBeenCalled();
+  });
+
+  it('TC-API-039: organizador aprueba inscripción devuelve 200', async () => {
+    configurarAuthMock(supabase, Usuario, ORGANIZADOR_TEST);
+    torneosService.aprobarInscripcion.mockResolvedValue({ id: 'insc-1', estado: 'aprobada' });
+
+    const res = await request(app)
+      .patch('/api/torneos/torneo-1/inscripciones/insc-1/aprobar')
+      .set('Authorization', TOKEN_ORGANIZADOR);
+
+    expect(res.status).toBe(200);
+    expect(res.body.estado).toBe('aprobada');
+    expect(torneosService.aprobarInscripcion).toHaveBeenCalledWith(
+      'torneo-1',
+      'insc-1',
+      ORGANIZADOR_TEST.id,
+    );
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DELETE /api/torneos/:id/inscripciones/:inscripcionId/rechazar
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('torneos API — DELETE /api/torneos/:id/inscripciones/:inscripcionId/rechazar', () => {
+  it('TC-API-040: sin token devuelve 401', async () => {
+    const res = await request(app).delete('/api/torneos/torneo-1/inscripciones/insc-1/rechazar');
+
+    expect(res.status).toBe(401);
+    expect(torneosService.rechazarInscripcion).not.toHaveBeenCalled();
+  });
+
+  it('TC-API-041: organizador rechaza inscripción devuelve 204', async () => {
+    configurarAuthMock(supabase, Usuario, ORGANIZADOR_TEST);
+    torneosService.rechazarInscripcion.mockResolvedValue(undefined);
+
+    const res = await request(app)
+      .delete('/api/torneos/torneo-1/inscripciones/insc-1/rechazar')
+      .set('Authorization', TOKEN_ORGANIZADOR);
+
+    expect(res.status).toBe(204);
+    expect(torneosService.rechazarInscripcion).toHaveBeenCalledWith(
+      'torneo-1',
+      'insc-1',
+      ORGANIZADOR_TEST.id,
+    );
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// GET /api/torneos/:id/inscripciones/:inscripcionId/snapshot
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('torneos API — GET /api/torneos/:id/inscripciones/:inscripcionId/snapshot', () => {
+  it('TC-API-042: sin token devuelve 401', async () => {
+    const res = await request(app).get('/api/torneos/torneo-1/inscripciones/insc-1/snapshot');
+
+    expect(res.status).toBe(401);
+    expect(torneosService.obtenerSnapshotInscripcion).not.toHaveBeenCalled();
+  });
+
+  it('TC-API-043: organizador obtiene snapshot devuelve 200', async () => {
+    configurarAuthMock(supabase, Usuario, ORGANIZADOR_TEST);
+    torneosService.obtenerSnapshotInscripcion.mockResolvedValue({
+      mazo: 'snapshot-data',
+      cartas: [],
+    });
+
+    const res = await request(app)
+      .get('/api/torneos/torneo-1/inscripciones/insc-1/snapshot')
+      .set('Authorization', TOKEN_ORGANIZADOR);
+
+    expect(res.status).toBe(200);
+    expect(res.body.mazo).toBe('snapshot-data');
+    expect(torneosService.obtenerSnapshotInscripcion).toHaveBeenCalledWith(
+      'torneo-1',
+      'insc-1',
+      ORGANIZADOR_TEST.id,
+    );
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PATCH /api/torneos/:id/cerrar
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('torneos API — PATCH /api/torneos/:id/cerrar', () => {
+  it('TC-API-044: sin token devuelve 401', async () => {
+    const res = await request(app).patch('/api/torneos/torneo-1/cerrar');
+
+    expect(res.status).toBe(401);
+    expect(torneosService.cerrarTorneo).not.toHaveBeenCalled();
+  });
+
+  it('TC-API-045: organizador cierra torneo devuelve 200', async () => {
+    configurarAuthMock(supabase, Usuario, ORGANIZADOR_TEST);
+    torneosService.cerrarTorneo.mockResolvedValue({ id: 'torneo-1', estado: 'finalizado' });
+
+    const res = await request(app)
+      .patch('/api/torneos/torneo-1/cerrar')
+      .set('Authorization', TOKEN_ORGANIZADOR);
+
+    expect(res.status).toBe(200);
+    expect(res.body.estado).toBe('finalizado');
+    expect(torneosService.cerrarTorneo).toHaveBeenCalledWith('torneo-1', ORGANIZADOR_TEST.id);
+  });
+});
