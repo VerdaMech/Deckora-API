@@ -19,10 +19,10 @@ export default defineConfig({
         'src/config/sequelize-config.cjs',
       ],
       thresholds: {
-        statements: 88,
+        statements: 90,
         branches: 80,
-        functions: 90,
-        lines: 88,
+        functions: 92,
+        lines: 90,
       },
     },
     setupFiles: ['./tests/helpers/setup.js'],
