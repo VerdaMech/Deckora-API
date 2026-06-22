@@ -14,11 +14,8 @@ jobs:
         with:
           node-version: '22'
           cache: npm
-          cache-dependency-path: deckora-api/package-lock.json
       - run: npm ci
-        working-directory: deckora-api
       - run: npm audit --audit-level=high
-        working-directory: deckora-api
 
   suite-completa:
     name: Suite completa (unit + integration + API + smoke)
@@ -61,21 +58,14 @@ jobs:
         with:
           node-version: '22'
           cache: npm
-          cache-dependency-path: deckora-api/package-lock.json
       - run: npm ci
-        working-directory: deckora-api
       - name: Ejecutar migraciones de base de datos de testing
         run: npm run db:migrate:test
-        working-directory: deckora-api
       - name: Unit tests
         run: npm run test:unit
-        working-directory: deckora-api
       - name: Integration tests
         run: npm run test:integration
-        working-directory: deckora-api
       - name: API tests
         run: npm run test:api
-        working-directory: deckora-api
       - name: Smoke tests
         run: npm run test:smoke
-        working-directory: deckora-api

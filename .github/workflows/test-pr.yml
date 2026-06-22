@@ -14,11 +14,8 @@ jobs:
         with:
           node-version: '22'
           cache: npm
-          cache-dependency-path: deckora-api/package-lock.json
       - run: npm ci
-        working-directory: deckora-api
       - run: npm audit --audit-level=moderate
-        working-directory: deckora-api
 
   lint:
     name: Análisis de seguridad (ESLint)
@@ -30,11 +27,8 @@ jobs:
         with:
           node-version: '22'
           cache: npm
-          cache-dependency-path: deckora-api/package-lock.json
       - run: npm ci
-        working-directory: deckora-api
       - run: npm run lint:security
-        working-directory: deckora-api
 
   unit-tests:
     name: Pruebas unitarias
@@ -48,8 +42,5 @@ jobs:
         with:
           node-version: '22'
           cache: npm
-          cache-dependency-path: deckora-api/package-lock.json
       - run: npm ci
-        working-directory: deckora-api
       - run: npm run test:unit
-        working-directory: deckora-api
