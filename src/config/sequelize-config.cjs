@@ -3,17 +3,17 @@ const env = process.env.NODE_ENV || 'development';
 const envFile = env === 'testing' ? '.env.test' : `.env.${env}`;
 require('dotenv').config({ path: envFile });
 
-const sslOptions = {
-  ssl: {
-    require: true,
-    rejectUnauthorized: false, // necesario para Supabase
-  },
-};
+const isLocalDb = (process.env.DATABASE_URL || '').includes('localhost');
 
 const base = {
   url: process.env.DATABASE_URL,
   dialect: 'postgres',
-  dialectOptions: sslOptions,
+  dialectOptions: isLocalDb ? {} : {
+    ssl: {
+      require: true,
+      rejectUnauthorized: false,
+    },
+  },
 };
 
 module.exports = {
