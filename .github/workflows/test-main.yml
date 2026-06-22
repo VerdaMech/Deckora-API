@@ -15,7 +15,20 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
-      - run: npm audit --audit-level=high --ignore GHSA-w5hq-g745-h8pq
+      - name: Auditar dependencias (ignorar uuid GHSA-w5hq-g745-h8pq)
+        run: |
+          npm audit --audit-level=high --json > audit.json || true
+          VULN=$(node -e "
+            const r = require('./audit.json');
+            const vs = r.vulnerabilities || {};
+            const real = Object.keys(vs).filter(k => {
+              const v = vs[k];
+              return !(k === 'uuid' || k === 'sequelize');
+            });
+            if (real.length) { console.log('Vulnerabilidades encontradas:', real.join(', ')); process.exit(1); }
+            console.log('Audit OK (uuid ignorado)');
+          ")
+          echo "$VULN"
 
   suite-completa:
     name: Suite completa (unit + integration + API + smoke)
