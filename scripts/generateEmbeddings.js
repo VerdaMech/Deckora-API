@@ -1,11 +1,10 @@
 import 'dotenv/config';
-import sequelize from '../src/config/db.js';
+import { Pool } from 'pg';
 import { generateEmbedding, generateEmbeddingsBatch } from '../src/utils/openrouter.js';
 import pLimit from 'p-limit';
-import { QueryTypes } from 'sequelize';
 
 const BATCH_SIZE = 50;         // cartas por llamada a la API
-const CONCURRENCIA = 2;        // batches simultáneos (= 100 cartas en vuelo)
+const CONCURRENCIA = 5;        // batches simultáneos
 const MAX_REINTENTOS = 5;
 const DELAY_BASE_MS = 1000;
 
@@ -34,23 +33,36 @@ async function withRetry(fn, etiqueta) {
   }
 }
 
-async function guardarEmbedding(cartaId, embedding) {
-  const embeddingStr = `[${embedding.join(',')}]`;
-  await sequelize.query('UPDATE cartas SET embedding = $1::vector WHERE id = $2', {
-    bind: [embeddingStr, cartaId],
-    type: QueryTypes.UPDATE,
-  });
+// Un solo UPDATE para todo el batch usando unnest — elimina N round-trips a la BD
+async function guardarEmbeddingsBatch(pool, cartas, embeddings) {
+  const ids = cartas.map((c) => c.id);
+  const embStrings = embeddings.map((e) => `[${e.join(',')}]`);
+
+  await pool.query(
+    `UPDATE cartas SET embedding = v.emb::vector
+     FROM (SELECT unnest($1::uuid[]) AS id, unnest($2::text[]) AS emb) AS v
+     WHERE cartas.id = v.id`,
+    [ids, embStrings],
+  );
 }
 
-async function procesarBatch(cartas) {
+// Fallback: guarda un único embedding (usado solo cuando el batch API falla)
+async function guardarEmbedding(pool, cartaId, embedding) {
+  await pool.query(
+    'UPDATE cartas SET embedding = $1::vector WHERE id = $2',
+    [`[${embedding.join(',')}]`, cartaId],
+  );
+}
+
+async function procesarBatch(pool, cartas) {
   const textos = cartas.map(buildTexto);
   const etiqueta = `batch [${cartas[0].id.slice(0, 8)}…]`;
 
   let embeddings;
   try {
     embeddings = await withRetry(() => generateEmbeddingsBatch(textos), etiqueta);
-  } catch (err) {
-    // si el batch falla definitivamente, reintenta carta por carta
+  } catch {
+    // si el batch API falla definitivamente, reintenta carta por carta
     console.warn(`${etiqueta} agotó reintentos. Procesando carta por carta...`);
     let ok = 0;
     let fail = 0;
@@ -60,7 +72,7 @@ async function procesarBatch(cartas) {
           () => generateEmbedding(buildTexto(carta)),
           `carta ${carta.id.slice(0, 8)}`,
         );
-        await guardarEmbedding(carta.id, emb);
+        await guardarEmbedding(pool, carta.id, emb);
         ok++;
       } catch (e) {
         console.error(`[carta ${carta.id}] falló definitivamente: ${e.message}`);
@@ -70,19 +82,24 @@ async function procesarBatch(cartas) {
     return { ok, fail };
   }
 
-  const resultados = await Promise.allSettled(
-    cartas.map((carta, i) => guardarEmbedding(carta.id, embeddings[i])),
-  );
-
-  const ok = resultados.filter((r) => r.status === 'fulfilled').length;
-  const fail = resultados.filter((r) => r.status === 'rejected').length;
-  return { ok, fail };
+  try {
+    await guardarEmbeddingsBatch(pool, cartas, embeddings);
+    return { ok: cartas.length, fail: 0 };
+  } catch (err) {
+    console.error(`${etiqueta} error al guardar en BD: ${err.message}`);
+    return { ok: 0, fail: cartas.length };
+  }
 }
 
 async function main() {
-  const cartas = await sequelize.query(
+  const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false },
+    max: CONCURRENCIA + 2,
+  });
+
+  const { rows: cartas } = await pool.query(
     'SELECT id, tipo, cmc, colors FROM cartas WHERE embedding IS NULL',
-    { type: QueryTypes.SELECT },
   );
 
   const total = cartas.length;
@@ -90,7 +107,7 @@ async function main() {
 
   if (total === 0) {
     console.log('Nada que procesar.');
-    await sequelize.close();
+    await pool.end();
     return;
   }
 
@@ -106,17 +123,20 @@ async function main() {
   let procesadas = 0;
   let fallidas = 0;
   let batchesCompletados = 0;
+  const startedAt = Date.now();
 
   const tareas = batches.map((batch) =>
     limit(async () => {
-      const { ok, fail } = await procesarBatch(batch);
+      const { ok, fail } = await procesarBatch(pool, batch);
       procesadas += ok;
       fallidas += fail;
       batchesCompletados++;
 
       if (batchesCompletados % 5 === 0 || batchesCompletados === batches.length) {
-        console.log(
-          `Progreso: ${procesadas + fallidas}/${total} cartas — batch ${batchesCompletados}/${batches.length}`,
+        const elapsed = ((Date.now() - startedAt) / 1000).toFixed(0);
+        const pct = (((procesadas + fallidas) / total) * 100).toFixed(1);
+        process.stdout.write(
+          `\rProgreso: ${procesadas + fallidas}/${total} (${pct}%) — batch ${batchesCompletados}/${batches.length} — ${elapsed}s`,
         );
       }
     }),
@@ -124,12 +144,13 @@ async function main() {
 
   await Promise.all(tareas);
 
-  console.log(`\nFinalizado: ${procesadas} exitosas, ${fallidas} fallidas de ${total} total.`);
+  const totalTime = ((Date.now() - startedAt) / 1000).toFixed(0);
+  console.log(`\n\nFinalizado: ${procesadas} exitosas, ${fallidas} fallidas de ${total} total. (${totalTime}s)`);
   if (fallidas > 0) {
     console.log('Vuelve a ejecutar el script para reintentar las fallidas.');
   }
 
-  await sequelize.close();
+  await pool.end();
 }
 
 main().catch((err) => {

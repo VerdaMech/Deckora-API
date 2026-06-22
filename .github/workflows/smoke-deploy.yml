@@ -1,0 +1,24 @@
+name: Smoke — Post deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: URL del deploy a verificar
+        required: false
+        default: https://deckora-api.onrender.com
+
+jobs:
+  smoke:
+    name: Health check post-deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verificar endpoint /health
+        run: |
+          URL="${{ github.event.inputs.base_url || 'https://deckora-api.onrender.com' }}"
+          echo "Verificando: $URL/health"
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "$URL/health")
+          echo "Status HTTP: $STATUS"
+          [ "$STATUS" = "200" ] || (echo "Health check falló con status $STATUS" && exit 1)

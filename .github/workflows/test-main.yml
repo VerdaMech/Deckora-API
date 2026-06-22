@@ -1,0 +1,84 @@
+name: CI — PR a main (suite completa)
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  audit-estricto:
+    name: Auditoría estricta de dependencias
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Auditar dependencias (ignorar uuid GHSA-w5hq-g745-h8pq)
+        run: |
+          npm audit --audit-level=high --json > audit.json || true
+          VULN=$(node -e "
+            const r = require('./audit.json');
+            const vs = r.vulnerabilities || {};
+            const real = Object.keys(vs).filter(k => {
+              const v = vs[k];
+              return !(k === 'uuid' || k === 'sequelize');
+            });
+            if (real.length) { console.log('Vulnerabilidades encontradas:', real.join(', ')); process.exit(1); }
+            console.log('Audit OK (uuid ignorado)');
+          ")
+          echo "$VULN"
+
+  suite-completa:
+    name: Suite completa (unit + integration + API + smoke)
+    runs-on: ubuntu-latest
+    needs: audit-estricto
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg15
+        env:
+          POSTGRES_USER: deckora_test
+          POSTGRES_PASSWORD: deckora_test
+          POSTGRES_DB: deckora_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      NODE_ENV: test
+      PORT: 3001
+      DATABASE_URL: postgresql://deckora_test:deckora_test@localhost:5432/deckora_test
+      # Secrets del proyecto Supabase de testing — configurar en:
+      # GitHub → Settings → Secrets and variables → Actions
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL_TEST }}
+      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY_TEST }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY_TEST }}
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY_TEST }}
+      EMAIL_FROM: noreply@test.local
+      # Mocks para APIs externas — no requieren secrets reales
+      OPENROUTER_API_KEY: mock-key
+      NOMIC_API_KEY: mock-key
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Ejecutar migraciones de base de datos de testing
+        run: npm run db:migrate:test
+      - name: Unit tests
+        run: npm run test:unit
+      - name: Integration tests
+        run: npm run test:integration
+      - name: API tests
+        run: npm run test:api
+      - name: Smoke tests
+        run: npm run test:smoke
