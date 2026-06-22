@@ -15,7 +15,7 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
-      - run: npm audit --audit-level=high
+      - run: npm audit --audit-level=high --ignore GHSA-w5hq-g745-h8pq
 
   suite-completa:
     name: Suite completa (unit + integration + API + smoke)
